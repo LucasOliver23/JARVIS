@@ -464,7 +464,9 @@ function openModal(){$('kKey').value=LS.get('jarvis_key','');$('kModel').value=L
 $('cfg').onclick=openModal;
 $('kClose').onclick=()=>$('modal').classList.add('gone');
 $('kSave').onclick=()=>{
-  LS.set('jarvis_key',$('kKey').value.trim());
+  const key=$('kKey').value.replace(/[\s"'`]/g,'');
+  if(key&&!/^sk-ant-/.test(key)){log('e','Chave inválida: deve começar com "sk-ant-". Copie de console.anthropic.com → API Keys.');return}
+  LS.set('jarvis_key',key);
   LS.set('jarvis_model',$('kModel').value.trim()||CONFIG.modelo);
   $('modal').classList.add('gone');log('s','Configurações salvas.');
 };

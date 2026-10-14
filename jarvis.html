@@ -242,6 +242,13 @@ form button{font:inherit;color:var(--c);background:transparent;border:0;border-l
       <button class="btn" id="kReset">RESETAR MEMÓRIA</button>
       <button class="btn" id="kClose">FECHAR</button>
     </div>
+    <h4>TRANSFERIR PARA OUTRO APARELHO</h4>
+    <label>Leva chaves, contas, voz e as notas da memória. O arquivo contém suas senhas: não compartilhe.</label>
+    <div class="row">
+      <button class="btn" id="cfgExport" type="button">⤓ EXPORTAR CONFIGURAÇÃO</button>
+      <button class="btn" id="cfgImport" type="button">⤒ IMPORTAR CONFIGURAÇÃO</button>
+      <input id="cfgFile" type="file" accept=".json,application/json" hidden>
+    </div>
   </div>
 </div>
 
@@ -1260,6 +1267,43 @@ $('kTest').onclick=()=>{
   LS.set('jarvis_el_key',$('xKey').value.replace(/\s/g,''));
   LS.set('jarvis_el_voice',$('xVoice').value.trim());
   speak(`Às suas ordens, ${CONFIG.tratamento}. Todos os sistemas operando normalmente.`);
+};
+</script>
+<script>
+'use strict';
+/* =====================================================================
+   TRANSFERÊNCIA DE CONFIGURAÇÃO ENTRE APARELHOS (PC → celular)
+   ===================================================================== */
+// Não exporta o que é próprio de cada aparelho (servidor, voz do navegador) nem caches
+const CFG_SKIP=/^jarvis_(srv|voice|agenda|mailbox|geo|digest|v)$/;
+$('cfgExport').onclick=()=>{
+  const data={};
+  try{
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i);
+      if(k.startsWith('jarvis_')&&!CFG_SKIP.test(k))data[k]=localStorage.getItem(k);
+    }
+  }catch(e){log('e','Não foi possível ler as configurações.');return}
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify({jarvis:1,exportado:new Date().toISOString(),data},null,1)],{type:'application/json'}));
+  a.download='jarvis_config.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  log('s',`Configuração exportada (${Object.keys(data).length} itens). Envie o arquivo para o celular e use IMPORTAR.`);
+};
+$('cfgImport').onclick=()=>$('cfgFile').click();
+$('cfgFile').onchange=async()=>{
+  const f=$('cfgFile').files[0]; $('cfgFile').value='';
+  if(!f)return;
+  try{
+    const j=JSON.parse(await f.text());
+    if(!j||j.jarvis!==1||typeof j.data!=='object')throw new Error('arquivo não é uma configuração do Jarvis');
+    let n=0;
+    for(const [k,v] of Object.entries(j.data)){
+      if(!k.startsWith('jarvis_')||CFG_SKIP.test(k)||typeof v!=='string')continue;
+      localStorage.setItem(k,v);n++;
+    }
+    log('s',`${n} itens importados. Recarregando...`);
+    setTimeout(()=>location.reload(),900);
+  }catch(e){log('e','Importação falhou: '+e.message)}
 };
 </script>
 </body>

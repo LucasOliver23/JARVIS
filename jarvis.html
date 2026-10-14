@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Jarvis</title>
+<style>
+:root{
+  --c:#00d4ff;--c2:#7af0ff;--cd:rgba(0,212,255,.15);--warn:#ffb347;--bad:#ff4d6d;
+  --bg:#03070d;--panel:rgba(6,18,30,.78);--line:rgba(0,212,255,.25);--tx:#cfefff;--mut:#5f8aa0;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:radial-gradient(ellipse at 50% 30%,#06182a 0%,var(--bg) 70%);color:var(--tx);font-family:var(--mono);overflow:hidden}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,transparent 0 3px,rgba(0,212,255,.025) 3px 4px);z-index:50}
+.screen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;transition:opacity .6s}
+.hide{opacity:0;pointer-events:none}
+.gone{display:none!important}
+
+/* BOOT */
+#boot h1{font-size:clamp(16px,3vw,24px);letter-spacing:.4em;color:var(--c);text-shadow:0 0 12px var(--c);animation:blink 1s steps(2) infinite}
+#boot small{color:var(--mut);letter-spacing:.3em}
+.bar{width:min(320px,70vw);height:3px;background:var(--cd);overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--c);box-shadow:0 0 10px var(--c);animation:fill 2.2s ease-out forwards}
+@keyframes fill{to{width:100%}}
+@keyframes blink{50%{opacity:.45}}
+
+/* ATIVAÇÃO */
+#act button{font:inherit;font-size:18px;letter-spacing:.3em;color:var(--c);background:transparent;border:1px solid var(--c);padding:18px 38px;cursor:pointer;box-shadow:0 0 18px var(--cd),inset 0 0 18px var(--cd);transition:.2s}
+#act button:hover{background:var(--cd);box-shadow:0 0 30px var(--c)}
+#act p{color:var(--mut);font-size:12px;letter-spacing:.2em}
+
+/* MAIN */
+#main{display:grid;grid-template-columns:minmax(320px,1fr) 1.2fr;grid-template-rows:auto 1fr;gap:12px;padding:12px;height:100%}
+header{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);padding:4px 4px 10px}
+header b{color:var(--c);letter-spacing:.4em;text-shadow:0 0 8px var(--c)}
+#status{font-size:12px;letter-spacing:.2em;color:var(--mut)}
+#status::before{content:"●";margin-right:6px;color:var(--c)}
+header button,.btn{font:inherit;font-size:12px;color:var(--c);background:transparent;border:1px solid var(--line);padding:6px 10px;cursor:pointer}
+header button:hover,.btn:hover{background:var(--cd)}
+.panel{background:var(--panel);border:1px solid var(--line);position:relative;min-height:0}
+.panel>.tag{position:absolute;top:-8px;left:10px;background:var(--bg);padding:0 6px;font-size:10px;letter-spacing:.25em;color:var(--mut)}
+#left{display:flex;flex-direction:column;gap:12px;min-height:0}
+#core{display:flex;flex-direction:column;align-items:center;padding:18px 10px 10px}
+
+/* REATOR */
+.reactor{position:relative;width:180px;height:180px}
+.reactor div{position:absolute;border-radius:50%;inset:0;margin:auto}
+.r1{width:180px;height:180px;border:2px dashed var(--c);opacity:.35;animation:spin 18s linear infinite}
+.r2{width:140px;height:140px;border:3px solid transparent;border-top-color:var(--c);border-bottom-color:var(--c);animation:spin 6s linear infinite reverse}
+.r3{width:100px;height:100px;border:1px solid var(--c);box-shadow:0 0 20px var(--c),inset 0 0 20px var(--c);animation:spin 10s linear infinite}
+.r4{width:52px;height:52px;background:radial-gradient(circle,#fff 0%,var(--c2) 35%,var(--c) 70%,transparent 72%);box-shadow:0 0 30px var(--c),0 0 60px var(--c);animation:breath 3s ease-in-out infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes breath{50%{transform:scale(.88);opacity:.8}}
+@keyframes talk{0%,100%{transform:scale(1)}25%{transform:scale(1.25)}60%{transform:scale(.92)}}
+body.listening .r4{animation:breath 1.4s ease-in-out infinite}
+body.listening .r1{opacity:.7}
+body.thinking .r2{animation-duration:.8s;border-top-color:var(--warn);border-bottom-color:var(--warn)}
+body.thinking .r3{animation-duration:1.6s}
+body.thinking .r4{filter:hue-rotate(-150deg)}
+body.speaking .r4{animation:talk .35s ease-in-out infinite}
+body.speaking .r3{box-shadow:0 0 40px var(--c),inset 0 0 30px var(--c)}
+#interim{min-height:20px;margin-top:12px;font-size:12px;color:var(--mut);text-align:center;max-width:90%}
+
+/* LOG */
+#logwrap{flex:1;display:flex;flex-direction:column;min-height:0}
+#log{flex:1;overflow-y:auto;padding:16px 12px 8px;font-size:13px;line-height:1.5}
+#log p{margin-bottom:8px;word-wrap:break-word}
+#log .u{color:#fff}#log .u::before{content:"› VOCÊ: ";color:var(--mut)}
+#log .a{color:var(--c2)}#log .a::before{content:"› JARVIS: ";color:var(--c)}
+#log .s{color:var(--mut);font-size:11px}#log .s::before{content:"[SYS] "}
+#log .m{color:var(--warn);font-size:11px}#log .m::before{content:"[MEM+] "}
+#log .e{color:var(--bad);font-size:11px}#log .e::before{content:"[ERRO] "}
+form{display:flex;border-top:1px solid var(--line)}
+form input{flex:1;font:inherit;font-size:13px;background:transparent;border:0;color:var(--tx);padding:12px;outline:0}
+form button{font:inherit;color:var(--c);background:transparent;border:0;border-left:1px solid var(--line);padding:0 16px;cursor:pointer}
+#mic.off{color:var(--bad)}
+
+/* GRAFO */
+#graphwrap{display:flex;flex-direction:column;min-height:0}
+#graph{flex:1;min-height:0}
+#graph svg{width:100%;height:100%;display:block}
+#detail{border-top:1px solid var(--line);padding:10px 12px;font-size:12px;min-height:54px;color:var(--mut)}
+#detail b{color:var(--c)}
+#detail button{margin-left:8px}
+.node{cursor:pointer}
+.node:hover circle{stroke-width:3}
+
+/* MODAL */
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:60}
+#modal .box{background:#06121e;border:1px solid var(--c);padding:22px;width:min(440px,92vw);display:flex;flex-direction:column;gap:10px;box-shadow:0 0 30px var(--cd)}
+#modal h2{font-size:14px;letter-spacing:.3em;color:var(--c)}
+#modal label{font-size:11px;color:var(--mut);letter-spacing:.15em}
+#modal input{font:inherit;background:transparent;border:1px solid var(--line);color:var(--tx);padding:8px}
+#modal .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+
+@media(max-width:820px){
+  body{overflow:auto}
+  #main{grid-template-columns:1fr;grid-template-rows:auto auto 420px;height:auto;min-height:100%}
+  #log{max-height:260px}
+  .reactor{transform:scale(.8)}
+}
+</style>
+</head>
+<body class="idle">
+
+<!-- TELA 1: BOOT -->
+<section id="boot" class="screen">
+  <h1>SINCRONIZANDO DADOS...</h1>
+  <div class="bar"><i></i></div>
+  <small>v5.0 · REBUILD</small>
+</section>
+
+<!-- TELA 2: ATIVAÇÃO -->
+<section id="act" class="screen hide">
+  <button id="btnAct">► ATIVAR SISTEMA</button>
+  <p>MICROFONE E SÍNTESE DE VOZ SERÃO INICIALIZADOS</p>
+</section>
+
+<!-- MAIN UI -->
+<main id="main" class="gone">
+  <header>
+    <b id="title">JARVIS</b>
+    <span id="status">OCIOSO</span>
+    <span><button id="mic" title="Ligar/desligar microfone">MIC</button> <button id="cfg" title="Configurações">⚙</button></span>
+  </header>
+  <section id="left">
+    <div id="core" class="panel">
+      <span class="tag">NÚCLEO</span>
+      <div class="reactor"><div class="r1"></div><div class="r2"></div><div class="r3"></div><div class="r4"></div></div>
+      <div id="interim"></div>
+    </div>
+    <div id="logwrap" class="panel">
+      <span class="tag">LOG DE COMUNICAÇÃO</span>
+      <div id="log"></div>
+      <form id="form"><input id="txt" placeholder="Digite um comando..." autocomplete="off"><button>ENVIAR</button></form>
+    </div>
+  </section>
+  <section id="graphwrap" class="panel">
+    <span class="tag">SECOND BRAIN</span>
+    <div id="graph"></div>
+    <div id="detail">Clique em um nó para ver a nota.</div>
+  </section>
+</main>
+
+<!-- CONFIGURAÇÕES -->
+<div id="modal" class="gone">
+  <div class="box">
+    <h2>CONFIGURAÇÕES</h2>
+    <label>ANTHROPIC API KEY</label>
+    <input id="kKey" type="password" placeholder="sk-ant-...">
+    <label>MODELO</label>
+    <input id="kModel">
+    <div class="row">
+      <button class="btn" id="kSave">SALVAR</button>
+      <button class="btn" id="kExport">EXPORTAR NOTAS</button>
+      <button class="btn" id="kReset">RESETAR MEMÓRIA</button>
+      <button class="btn" id="kClose">FECHAR</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+/* ================= CONFIG ================= */
+const CONFIG={
+  nome:'Jarvis',
+  tratamento:'Amigo',
+  cor:'Azul Reator',
+  persona:'Formal/Mordomo',
+  wake:'Ei Jarvis',
+  voz:'masculina',
+  modelo:'claude-opus-5-5',
+  api:'https://api.anthropic.com/v1/messages',
+  maxHist:16
+};
+
+const AREA={
+  A:{n:'Pessoal',c:'#00d4ff'},
+  B:{n:'Metas',c:'#ffd166'},
+  C:{n:'Carreira',c:'#06d6a0'},
+  D:{n:'Projetos',c:'#4cc9f0'},
+  E:{n:'Finanças',c:'#80ed99'},
+  F:{n:'Aprendizado',c:'#b388ff'},
+  G:{n:'Saúde',c:'#ff6b6b'},
+  H:{n:'Relações',c:'#ff9ff3'}
+};
+
+const NOTES=[
+  {area:'A',t:'Perfil',x:'Lucas, 33 anos, mora em Aparecida de Goiânia-GO. Rotina dividida entre trabalho e estudo.'},
+  {area:'B',t:'Inglês',x:'Meta: aprender inglês do nível inicial ao avançado.'},
+  {area:'B',t:'Liberdade financeira',x:'Meta de longo prazo: alcançar liberdade financeira.'},
+  {area:'C',t:'Grupo Só Filtros',x:'Trabalha no Grupo Só Filtros como vendedor / assistente de compras.'},
+  {area:'D',t:'Apps mobile',x:'Projeto ativo: criação de apps para celular. Quer aprofundar em programação.'},
+  {area:'E',t:'Plano financeiro',x:'Prioridades: quitar dívidas, economizar e investir rumo à liberdade financeira.'},
+  {area:'F',t:'Faculdade ADS',x:'Cursando Análise e Desenvolvimento de Sistemas.'},
+  {area:'F',t:'Estudos',x:'Quer aprender mais programação e inglês do zero ao avançado.'},
+  {area:'G',t:'Hábitos',x:'Foco em treino, sono, alimentação saudável e criar hábitos saudáveis.'},
+  {area:'H',t:'Rede',x:'Pessoas importantes: família e amigos.'}
+];
+
+/* ================= ESTADO ================= */
+const $=id=>document.getElementById(id);
+const LS={
+  get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v)}catch(e){return d}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+};
+let notes=LS.get('jarvis_notes',null)||NOTES.map((n,i)=>({...n,id:'n'+i,ts:Date.now()}));
+let history=[];
+let busy=false, thinking=false, sttOn=false, armedUntil=0, rec=null, voice=null, restartT=null;
+
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const norm=s=>String(s).normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();
+
+function log(cls,text){
+  const p=document.createElement('p');p.className=cls;p.textContent=text;
+  const l=$('log');l.appendChild(p);l.scrollTop=l.scrollHeight;
+}
+const STATE_TXT={idle:'OCIOSO',listening:'OUVINDO',thinking:'PROCESSANDO',speaking:'FALANDO'};
+function setState(s){document.body.className=s;$('status').textContent=STATE_TXT[s]}
+function restState(){setState(sttOn?'listening':'idle')}
+
+/* ================= TTS ================= */
+function pickVoice(){
+  if(!('speechSynthesis' in window))return;
+  const vs=speechSynthesis.getVoices().filter(v=>/^pt[-_]BR/i.test(v.lang));
+  const male=/daniel|ant[oô]nio|felipe|ricardo|thiago|paulo|male|mascul/i;
+  const fem=/maria|francisca|luciana|vit[oó]ria|raquel|helo|female|femin|google portugu/i;
+  const [want,avoid]=CONFIG.voz==='feminina'?[fem,male]:[male,fem];
+  voice=vs.find(v=>want.test(v.name))||vs.find(v=>!avoid.test(v.name))||vs[0]||null;
+}
+if('speechSynthesis' in window){pickVoice();speechSynthesis.onvoiceschanged=pickVoice}
+
+function speak(text){
+  return new Promise(resolve=>{
+    if(!text||!('speechSynthesis' in window)){resolve();return}
+    busy=true; stopSTT(); setState('speaking');
+    speechSynthesis.cancel();
+    // Divide em frases: evita o corte de ~15s do Chrome em falas longas
+    const parts=(text.match(/[^.!?;:\n]+[.!?;:]*/g)||[text]).map(s=>s.trim()).filter(Boolean);
+    let i=0, guard=null;
+    const done=()=>{clearTimeout(guard);setTimeout(()=>{busy=false;restState();startSTT();resolve()},400)};
+    const next=()=>{
+      clearTimeout(guard);
+      if(i>=parts.length){done();return}
+      const u=new SpeechSynthesisUtterance(parts[i++]);
+      u.lang='pt-BR'; if(voice)u.voice=voice;
+      u.rate=1.03; u.pitch=CONFIG.voz==='feminina'?1.1:.9;
+      u.onend=next; u.onerror=next;
+      guard=setTimeout(next,u.text.length*110+4000); // onend às vezes não dispara
+      speechSynthesis.speak(u);
+    };
+    next();
+  });
+}
+
+/* ================= STT (OMNIROUTE LOCAL) ================= */
+function initSTT(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){log('s','Reconhecimento de voz indisponível neste navegador. Use o campo de texto (recomendado: Chrome/Edge).');return false}
+  try{
+    rec=new SR();
+    rec.lang='pt-BR'; rec.continuous=true; rec.interimResults=true; rec.maxAlternatives=1;
+    rec.onresult=e=>{
+      if(busy)return; // nunca processa o que o próprio Jarvis falou
+      let fin='',tmp='';
+      for(let i=e.resultIndex;i<e.results.length;i++){
+        const r=e.results[i]; r.isFinal?fin+=r[0].transcript:tmp+=r[0].transcript;
+      }
+      $('interim').textContent=tmp;
+      if(fin.trim()){$('interim').textContent='';route(fin.trim())}
+    };
+    rec.onerror=e=>{
+      if(e.error==='not-allowed'||e.error==='service-not-allowed'){
+        sttOn=false;$('mic').classList.add('off');restState();
+        log('e','Microfone bloqueado. Libere a permissão no navegador ou use o texto.');
+      }
+    };
+    rec.onend=()=>{if(sttOn&&!busy){clearTimeout(restartT);restartT=setTimeout(startSTT,250)}};
+    return true;
+  }catch(err){log('e','Falha ao iniciar STT: '+err.message);return false}
+}
+function startSTT(){
+  if(!rec||!sttOn||busy)return;
+  try{rec.start()}catch(e){/* já ativo */}
+  if(!thinking)setState('listening');
+}
+function stopSTT(){clearTimeout(restartT);try{rec&&rec.abort()}catch(e){}}
+
+const WAKE_RE=new RegExp('(?:^|[\\s,.!?])(?:(?:ei|hey|hei|oi|ok|e|ô|o)[\\s,]+)?'+(norm(CONFIG.nome)==='jarvis'?'j[ae]r?v[iey]s':norm(CONFIG.nome))+'[\\s,.!?:]*','i');
+
+async function route(heard){
+  if(thinking)return;
+  const n=norm(heard);
+  const m=WAKE_RE.exec(n);
+  let cmd=null;
+  if(m){
+    // posição em n corresponde à de heard após remover acentos só quando os comprimentos batem; senão usa n
+    const src=heard.length===n.length?heard:n;
+    cmd=src.slice(m.index+m[0].length).trim();
+    if(!cmd){
+      log('u',heard);
+      await speak('Pois não, '+CONFIG.tratamento+'?');
+      armedUntil=Date.now()+8000;
+      return;
+    }
+  }else if(Date.now()<armedUntil){
+    cmd=heard;
+  }
+  if(cmd===null)return; // sem wake word: ignorado localmente, nada sai para a rede
+  armedUntil=0;
+  log('u',cmd);
+  await ask(cmd);
+}
+
+/* ================= CÉREBRO + CLAUDE MEM ================= */
+function areaKey(a){
+  const k=String(a).trim();
+  if(AREA[k.toUpperCase()])return k.toUpperCase();
+  const nk=norm(k);
+  return Object.keys(AREA).find(id=>norm(AREA[id].n)===nk)||'A';
+}
+
+function buildSystem(){
+  const brain=Object.keys(AREA).map(id=>{
+    const list=notes.filter(n=>n.area===id);
+    return '## '+id+' · '+AREA[id].n+'\n'+(list.length?list.map(n=>'- '+n.t+': '+n.x).join('\n'):'- (vazio)');
+  }).join('\n');
+  return [
+`Você é ${CONFIG.nome}, assistente pessoal de voz. Persona: ${CONFIG.persona} — educado, leal, eficiente, com leve humor britânico sutil. Sempre trate o usuário como "${CONFIG.tratamento}".`,
+`Data/hora local: ${new Date().toLocaleString('pt-BR')}.`,
+`REGRAS DE SAÍDA: responda em português do Brasil. Suas respostas serão FALADAS por TTS: sem markdown, sem listas com símbolos, sem emojis, sem código. Seja conciso (1 a 3 frases) a menos que peçam detalhes.`,
+`SECOND BRAIN (memória persistente do usuário, use para personalizar respostas):\n${brain}`,
+`MEMÓRIA VIVA: Se notar informação nova/relevante sobre o usuário (fatos, metas, progresso, preferências, pessoas, datas), adicione ao final da resposta [[SAVE:area|titulo|texto]]. "area" é uma letra de A a H (${Object.keys(AREA).map(k=>k+'='+AREA[k].n).join(', ')}). "titulo" curto (até 4 palavras). "texto" uma frase objetiva. Não use "|" nem "]" dentro dos campos. Não salve o que já está no Second Brain. Pode usar mais de uma tag. Nunca mencione a tag na fala.`
+  ].join('\n\n');
+}
+
+const SAVE_RE=/\[\[\s*SAVE\s*:\s*([^|\]]+?)\s*\|\s*([^|\]]+?)\s*\|\s*([^\]]+?)\s*\]\]/gi;
+
+function extractMemory(text){
+  let saved=0;
+  for(const m of text.matchAll(SAVE_RE)){
+    const area=areaKey(m[1]), t=m[2].trim(), x=m[3].trim();
+    const ex=notes.find(n=>n.area===area&&norm(n.t)===norm(t));
+    if(ex){ex.x=x;ex.ts=Date.now()}
+    else notes.push({id:'n'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),area,t,x,ts:Date.now()});
+    log('m',AREA[area].n+' › '+t+': '+x);
+    saved++;
+  }
+  if(saved){LS.set('jarvis_notes',notes);renderGraph()}
+  return text.replace(SAVE_RE,'').replace(/\s{2,}/g,' ').trim();
+}
+
+async function ask(userText){
+  const key=LS.get('jarvis_key','');
+  if(!key){log('e','API key não configurada.');openModal();await speak('Preciso da sua chave de API, '+CONFIG.tratamento+'.');return}
+  thinking=true; setState('thinking');
+  history.push({role:'user',content:userText});
+  try{
+    const res=await fetch(CONFIG.api,{
+      method:'POST',
+      headers:{
+        'content-type':'application/json',
+        'x-api-key':key,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body:JSON.stringify({
+        model:LS.get('jarvis_model',CONFIG.modelo),
+        max_tokens:800,
+        system:buildSystem(),
+        messages:history.slice(-CONFIG.maxHist)
+      })
+    });
+    const data=await res.json().catch(()=>({}));
+    if(!res.ok)throw new Error((data.error&&data.error.message)||('HTTP '+res.status));
+    const raw=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n').trim();
+    const clean=extractMemory(raw)||'Anotado, '+CONFIG.tratamento+'.';
+    history.push({role:'assistant',content:clean});
+    if(history.length>CONFIG.maxHist)history=history.slice(-CONFIG.maxHist);
+    thinking=false;
+    log('a',clean);
+    await speak(clean);
+  }catch(err){
+    history.pop(); // mantém alternância user/assistant
+    thinking=false;
+    log('e',err.message);
+    await speak('Falha na comunicação com o servidor, '+CONFIG.tratamento+'.');
+  }finally{thinking=false;if(!busy)restState()}
+}
+
+/* ================= GRAFO (SECOND BRAIN) ================= */
+const G={W:600,H:600,cx:300,cy:300,pulses:[],raf:null,t0:0};
+
+function curve(x1,y1,x2,y2,bend){
+  const mx=(x1+x2)/2,my=(y1+y2)/2,dx=x2-x1,dy=y2-y1,len=Math.hypot(dx,dy)||1;
+  const qx=mx-dy/len*bend, qy=my+dx/len*bend;
+  return `M${x1.toFixed(1)} ${y1.toFixed(1)} Q${qx.toFixed(1)} ${qy.toFixed(1)} ${x2.toFixed(1)} ${y2.toFixed(1)}`;
+}
+const cut=(s,n)=>s.length>n?s.slice(0,n-1)+'…':s;
+
+function renderGraph(){
+  const {cx,cy}=G, ids=Object.keys(AREA);
+  let edges='',nodes='',pulses='',pi=0;
+  ids.forEach((id,i)=>{
+    const a=i/ids.length*Math.PI*2-Math.PI/2, ax=cx+Math.cos(a)*140, ay=cy+Math.sin(a)*140, col=AREA[id].c;
+    edges+=`<path id="e${pi}" d="${curve(cx,cy,ax,ay,18)}" stroke="${col}" stroke-opacity=".45" stroke-width="1.5" fill="none"/>`;
+    pulses+=`<circle class="pl" data-e="e${pi}" r="2.6" fill="${col}" filter="url(#glow)"/>`;pi++;
+    const list=notes.filter(n=>n.area===id), k=list.length;
+    list.forEach((n,j)=>{
+      const spread=Math.min(Math.PI*1.1,0.5*k), na=a+(k>1?(j/(k-1)-.5)*spread:0), r=78+(j%2)*18;
+      const nx=ax+Math.cos(na)*r, ny=ay+Math.sin(na)*r;
+      edges+=`<path id="e${pi}" d="${curve(ax,ay,nx,ny,10)}" stroke="${col}" stroke-opacity=".3" stroke-width="1" fill="none"/>`;
+      pulses+=`<circle class="pl" data-e="e${pi}" r="1.8" fill="#fff" filter="url(#glow)"/>`;pi++;
+      nodes+=`<g class="node" data-id="${esc(n.id)}"><circle cx="${nx.toFixed(1)}" cy="${ny.toFixed(1)}" r="6" fill="#03070d" stroke="${col}" stroke-width="2"/><text x="${nx.toFixed(1)}" y="${(ny+17).toFixed(1)}" fill="${col}" font-size="9" text-anchor="middle" opacity=".85">${esc(cut(n.t,16))}</text></g>`;
+    });
+    nodes+=`<g><circle cx="${ax.toFixed(1)}" cy="${ay.toFixed(1)}" r="13" fill="${col}" fill-opacity=".15" stroke="${col}" stroke-width="1.5" filter="url(#glow)"/><text x="${ax.toFixed(1)}" y="${(ay+3.5).toFixed(1)}" fill="${col}" font-size="10" font-weight="bold" text-anchor="middle">${id}</text><text x="${ax.toFixed(1)}" y="${(ay-19).toFixed(1)}" fill="${col}" font-size="10" text-anchor="middle" letter-spacing="2">${esc(AREA[id].n.toUpperCase())}</text></g>`;
+  });
+  const core=`<g><circle id="coreHalo" cx="${cx}" cy="${cy}" r="34" fill="none" stroke="var(--c)" stroke-opacity=".4"/><circle cx="${cx}" cy="${cy}" r="22" fill="url(#cg)" filter="url(#glow)"/><text x="${cx}" y="${cy+52}" fill="var(--c)" font-size="10" text-anchor="middle" letter-spacing="3">${esc(CONFIG.nome.toUpperCase())} · ${notes.length} NOTAS</text></g>`;
+  // SVG montado como string e injetado via innerHTML no DIV (evita problemas de namespace)
+  $('graph').innerHTML=`<svg viewBox="0 0 ${G.W} ${G.H}" preserveAspectRatio="xMidYMid meet" font-family="ui-monospace,Menlo,Consolas,monospace">
+<defs><filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+<radialGradient id="cg"><stop offset="0" stop-color="#fff"/><stop offset=".4" stop-color="#7af0ff"/><stop offset="1" stop-color="#00d4ff" stop-opacity=".2"/></radialGradient></defs>
+${edges}${pulses}${core}${nodes}</svg>`;
+  const svg=$('graph').firstChild;
+  G.pulses=[...svg.querySelectorAll('.pl')].map(c=>{
+    const p=svg.getElementById(c.dataset.e);
+    return {c,p,len:p.getTotalLength(),t:Math.random(),v:.0025+Math.random()*.004};
+  });
+  G.halo=svg.getElementById('coreHalo');
+  if(!G.raf)G.raf=requestAnimationFrame(tick);
+}
+
+function tick(ts){
+  const boost={thinking:3,speaking:2,listening:1.3}[document.body.className]||1;
+  for(const s of G.pulses){
+    s.t+=s.v*boost; if(s.t>1)s.t-=1;
+    const pt=s.p.getPointAtLength(s.t*s.len);
+    s.c.setAttribute('cx',pt.x);s.c.setAttribute('cy',pt.y);
+    s.c.setAttribute('opacity',Math.sin(s.t*Math.PI).toFixed(2));
+  }
+  if(G.halo){
+    const k=(Math.sin(ts/(boost>1?180:600))+1)/2;
+    G.halo.setAttribute('r',(30+k*10).toFixed(1));
+    G.halo.setAttribute('stroke-opacity',(.6-k*.5).toFixed(2));
+  }
+  G.raf=requestAnimationFrame(tick);
+}
+
+$('graph').addEventListener('click',e=>{
+  const g=e.target.closest('.node'); if(!g)return;
+  const n=notes.find(x=>x.id===g.dataset.id); if(!n)return;
+  $('detail').innerHTML=`<b>${esc(AREA[n.area].n)} › ${esc(n.t)}</b><br>${esc(n.x)} <button class="btn" data-del="${esc(n.id)}">APAGAR</button>`;
+});
+$('detail').addEventListener('click',e=>{
+  const id=e.target.dataset&&e.target.dataset.del; if(!id)return;
+  notes=notes.filter(n=>n.id!==id);LS.set('jarvis_notes',notes);renderGraph();
+  $('detail').textContent='Nota apagada.';
+});
+
+/* ================= CONFIG MODAL ================= */
+function openModal(){$('kKey').value=LS.get('jarvis_key','');$('kModel').value=LS.get('jarvis_model',CONFIG.modelo);$('modal').classList.remove('gone')}
+$('cfg').onclick=openModal;
+$('kClose').onclick=()=>$('modal').classList.add('gone');
+$('kSave').onclick=()=>{
+  LS.set('jarvis_key',$('kKey').value.trim());
+  LS.set('jarvis_model',$('kModel').value.trim()||CONFIG.modelo);
+  $('modal').classList.add('gone');log('s','Configurações salvas.');
+};
+$('kExport').onclick=()=>{
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(notes,null,2)],{type:'application/json'}));
+  a.download='jarvis_notes.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+};
+$('kReset').onclick=()=>{
+  if(!confirm('Restaurar o Second Brain para as notas iniciais?'))return;
+  notes=NOTES.map((n,i)=>({...n,id:'n'+i,ts:Date.now()}));LS.set('jarvis_notes',notes);renderGraph();log('s','Memória restaurada.');
+};
+
+/* ================= UI ================= */
+$('form').onsubmit=e=>{
+  e.preventDefault();
+  const v=$('txt').value.trim(); if(!v||thinking)return;
+  $('txt').value='';log('u',v);
+  if('speechSynthesis' in window)speechSynthesis.cancel();
+  ask(v);
+};
+$('mic').onclick=()=>{
+  if(!rec&&!initSTT())return;
+  sttOn=!sttOn;$('mic').classList.toggle('off',!sttOn);
+  sttOn?startSTT():(stopSTT(),restState());
+  log('s','Microfone '+(sttOn?'ativo':'desligado')+'.');
+};
+
+/* ================= BOOT → ATIVAÇÃO → MAIN ================= */
+$('title').textContent=CONFIG.nome.toUpperCase();
+document.title=CONFIG.nome;
+setTimeout(()=>{$('boot').classList.add('hide');$('act').classList.remove('hide')},2200);
+
+$('btnAct').onclick=async()=>{
+  $('act').classList.add('hide');
+  setTimeout(()=>$('act').classList.add('gone'),600);
+  $('boot').classList.add('gone');
+  $('main').classList.remove('gone');
+  renderGraph();
+  log('s',`${CONFIG.nome} online. ${notes.length} notas carregadas. Diga "${CONFIG.wake}" seguido do comando.`);
+  try{
+    if(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia){
+      const st=await navigator.mediaDevices.getUserMedia({audio:true});
+      st.getTracks().forEach(t=>t.stop());
+    }
+    if(initSTT()){sttOn=true;$('mic').classList.remove('off')}
+  }catch(err){log('e','Sem acesso ao microfone: '+err.message);$('mic').classList.add('off')}
+  await speak(`Sistemas online. Bem-vindo, ${CONFIG.tratamento}.`);
+  if(!LS.get('jarvis_key',''))openModal();
+};
+</script>
+</body>
+</html>

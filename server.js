@@ -259,29 +259,34 @@ function readJSON(req, res, handler) {
 }
 
 /* ---------------- servidor ---------------- */
-process.on('uncaughtException', (e) => console.error('[Antena] erro:', e.message)); // nunca derruba o servidor
+// Reaproveitado pelas funções serverless do Vercel (pasta api/) — mesma lógica no PC e no celular
+module.exports = { fetchAllowed, readInbox, tavily, CORS };
 
-http.createServer((req, res) => {
-  const u = new URL(req.url, 'http://' + HOST);
-  if (req.method === 'OPTIONS') { res.writeHead(204, CORS); return res.end(); }
+if (require.main === module) {
+  process.on('uncaughtException', (e) => console.error('[Antena] erro:', e.message)); // nunca derruba o servidor
 
-  if (req.method === 'GET' && u.pathname === '/health') return send(res, 200, { ok: true, v: '1.1', search: true });
+  http.createServer((req, res) => {
+    const u = new URL(req.url, 'http://' + HOST);
+    if (req.method === 'OPTIONS') { res.writeHead(204, CORS); return res.end(); }
 
-  if (req.method === 'GET' && u.pathname === '/proxy') {
-    return fetchAllowed(u.searchParams.get('url') || '')
-      .then((r) => send(res, r.status, r.body, r.type))
-      .catch((e) => send(res, 400, { error: e.message }));
-  }
+    if (req.method === 'GET' && u.pathname === '/health') return send(res, 200, { ok: true, v: '1.1', search: true });
 
-  if (req.method === 'POST' && u.pathname === '/emails') return readJSON(req, res, readInbox);
+    if (req.method === 'GET' && u.pathname === '/proxy') {
+      return fetchAllowed(u.searchParams.get('url') || '')
+        .then((r) => send(res, r.status, r.body, r.type))
+        .catch((e) => send(res, 400, { error: e.message }));
+    }
 
-  if (req.method === 'POST' && u.pathname === '/search') {
-    return readJSON(req, res, ({ query, api_key, max_results }) => {
-      query = String(query || '').trim().slice(0, 400);
-      if (!query) throw Object.assign(new Error('query vazia'), { code: 400 });
-      if (!api_key) throw Object.assign(new Error('Chave Tavily ausente'), { code: 400 });
-      return tavily(query, String(api_key).trim(), Math.min(Math.max(Number(max_results) || 5, 1), 8));
-    });
-  }
-  send(res, 404, { error: 'Rota não encontrada' });
-}).listen(PORT, HOST, () => console.log(`Jarvis · Antena online em http://${HOST}:${PORT}  (Ctrl+C para sair)`));
+    if (req.method === 'POST' && u.pathname === '/emails') return readJSON(req, res, readInbox);
+
+    if (req.method === 'POST' && u.pathname === '/search') {
+      return readJSON(req, res, ({ query, api_key, max_results }) => {
+        query = String(query || '').trim().slice(0, 400);
+        if (!query) throw Object.assign(new Error('query vazia'), { code: 400 });
+        if (!api_key) throw Object.assign(new Error('Chave Tavily ausente'), { code: 400 });
+        return tavily(query, String(api_key).trim(), Math.min(Math.max(Number(max_results) || 5, 1), 8));
+      });
+    }
+    send(res, 404, { error: 'Rota não encontrada' });
+  }).listen(PORT, HOST, () => console.log(`Jarvis · Antena online em http://${HOST}:${PORT}  (Ctrl+C para sair)`));
+}

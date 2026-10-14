@@ -2,7 +2,13 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#03070d">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
 <title>Jarvis</title>
 <style>
 :root{
@@ -217,7 +223,7 @@ form button{font:inherit;color:var(--c);background:transparent;border:0;border-l
     <input id="xTavily" type="password" placeholder="tvly-..." autocomplete="off">
     <h4>INTEGRAÇÕES</h4>
     <label>SERVIDOR LOCAL (server.js)</label>
-    <input id="iSrv" placeholder="http://127.0.0.1:4242">
+    <input id="iSrv" placeholder="automático">
     <label>LINK iCAL · CONTA 1 (endereço secreto)</label>
     <input id="iCal1" type="password" placeholder="https://calendar.google.com/calendar/ical/.../basic.ics">
     <label>LINK iCAL · CONTA 2</label>
@@ -421,6 +427,8 @@ function buildSystem(){
   ].join('\n\n');
 }
 
+// PC (arquivo local) → server.js em 127.0.0.1:4242 · Online/APK (https) → funções /api do Vercel
+const DEFAULT_SRV=location.protocol==='https:'?location.origin+'/api':'http://127.0.0.1:4242';
 const apiHeaders=key=>({
   'content-type':'application/json',
   'x-api-key':key,
@@ -467,7 +475,7 @@ async function runTool(name,input){
   if(name!=='web_search')throw new Error('Ferramenta desconhecida: '+name);
   const query=String((input&&input.query)||'').trim();
   log('s','🔎 Pesquisando na web: '+query);
-  const srv=(LS.get('jarvis_srv','')||'http://127.0.0.1:4242').replace(/\/+$/,'');
+  const srv=(LS.get('jarvis_srv','')||DEFAULT_SRV).replace(/\/+$/,'');
   let r;
   try{r=await fetch(srv+'/search',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({query,api_key:LS.get('jarvis_tavily',''),max_results:5})})}
   catch(e){throw new Error('Antena offline: rode node server.js para habilitar a pesquisa.')}
@@ -686,7 +694,7 @@ $('btnAct').onclick=async()=>{
    Envelopa o core (handleCommand, buildSystem, openModal) sem alterá-lo.
    ===================================================================== */
 const MOD={
-  srv:'http://127.0.0.1:4242',
+  srv:DEFAULT_SRV,
   agendaDias:7,
   mailHost:'imap.gmail.com', mailLimit:20, mailDias:3,
   topicos:'Tecnologia, Economia', noticiasQtd:5,
@@ -717,7 +725,7 @@ function dayLabel(d){
   if(k===0)return 'HOJE';if(k===1)return 'AMANHÃ';
   return d.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'}).toUpperCase();
 }
-const offline=()=>new Error('Antena offline. Rode node server.js no computador.');
+const offline=()=>new Error(location.protocol==='https:'?'Servidor online indisponível. Verifique a internet.':'Antena offline. Rode node server.js no computador.');
 function setAnt(ok){const a=$('ant');a.textContent='ANTENA '+(ok?'●':'○');a.className=ok?'on':'off'}
 async function antenna(){
   try{const r=await fetch(cfg().srv+'/health',{cache:'no-store'});setAnt(r.ok);return r.ok}
@@ -1098,12 +1106,20 @@ $('kSave').addEventListener('click',()=>{
 renderAgenda();renderMail();
 (()=>{const d=LS.get('jarvis_digest',null);if(d&&d.d===new Date().toDateString())$('dgBody').innerHTML=`<div id="digestTxt">${esc(d.txt)}</div>`})();
 $('btnAct').addEventListener('click',()=>setTimeout(async()=>{
-  if(!(await antenna())){log('s','Antena offline — agenda, e-mails e notícias exigem "node server.js".');return}
+  if(!(await antenna())){log('s',location.protocol==='https:'?'Servidor online indisponível — agenda, e-mails e notícias pausados.':'Antena offline — agenda, e-mails e notícias exigem "node server.js".');return}
   const c=cfg();
   if(c.icals.length)loadAgenda().catch(e=>log('e',e.message));
   if(c.mail.user&&c.mail.pass)loadMail().catch(e=>log('e',e.message));
 },2500));
 setInterval(antenna,60000);
+
+/* ---------- PWA / CELULAR ---------- */
+if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{});
+// Mantém a tela ligada enquanto o Jarvis escuta (senão o Android desliga o microfone)
+let wakeLock=null;
+async function keepAwake(){try{if('wakeLock' in navigator&&document.visibilityState==='visible')wakeLock=await navigator.wakeLock.request('screen')}catch(e){}}
+$('btnAct').addEventListener('click',keepAwake);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&$('act').classList.contains('gone'))keepAwake()});
 </script>
 <script>
 'use strict';

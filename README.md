@@ -37,3 +37,13 @@ Morning Digest (1 chamada) usam a API.
   Sem chave, o Jarvis usa a voz do navegador. O microfone só reabre quando o áudio termina.
 - **Tavily** (⚙ → Pesquisa web): cole a chave `tvly-...` (app.tavily.com). Exige `node server.js` rodando (rota `/search`).
   O Claude decide quando pesquisar (tool `web_search`), recebe o resultado e responde citando a fonte.
+
+## Celular (PWA + APK)
+
+O mesmo `jarvis.html` roda online no Vercel: as rotas do `server.js` viram funções em `api/` (mesma lógica, reaproveitada),
+então no celular não precisa do PC ligado. No PC (arquivo local) continua usando `node server.js`.
+
+1. **Deploy no Vercel:** importar este repositório (branch com estes arquivos). Sem variáveis de ambiente — as chaves ficam no aparelho.
+2. **Testar no celular:** abrir a URL no **Chrome do Android** → menu ⋮ → *Instalar app*.
+3. **APK:** pwabuilder.com → colar a URL → *Package for stores* → **Android** → *Generate* → baixar o .zip e instalar o `.apk`.
+4. Depois de qualquer mudança: atualizar o deploy no Vercel **antes** de gerar um novo APK.

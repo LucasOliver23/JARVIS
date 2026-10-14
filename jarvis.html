@@ -436,9 +436,12 @@ function buildSystem(){
 
 // PC (arquivo local) → server.js em 127.0.0.1:4242 · Online/APK (https) → funções /api do Vercel
 const DEFAULT_SRV=location.protocol==='https:'?location.origin+'/api':'http://127.0.0.1:4242';
+// Remove qualquer caractere invisível/fora do padrão (comum ao colar no celular)
+const cleanKey=k=>String(k||'').replace(/^["']|["']$/g,'').replace(/[^\x21-\x7E]/g,'');
+function keyHint(k){k=cleanKey(k);return k?`começa com "${k.slice(0,10)}…", ${k.length} caracteres (uma chave válida tem ~108)`:'vazia'}
 const apiHeaders=key=>({
   'content-type':'application/json',
-  'x-api-key':key,
+  'x-api-key':cleanKey(key),
   'anthropic-version':'2023-06-01',
   'anthropic-dangerous-direct-browser-access':'true'
 });
@@ -474,7 +477,10 @@ const MAX_TOOL_STEPS=4;
 async function callClaude(body){
   const res=await fetch(CONFIG.api,{method:'POST',headers:apiHeaders(LS.get('jarvis_key','')),body:JSON.stringify(body)});
   const data=await res.json().catch(()=>({}));
-  if(!res.ok)throw new Error((data.error&&data.error.message)||('HTTP '+res.status));
+  if(!res.ok){
+    if(res.status===401)throw new Error('Chave Anthropic recusada ('+keyHint(LS.get('jarvis_key',''))+'). Gere uma nova em console.anthropic.com → API Keys e cole na ⚙.');
+    throw new Error((data.error&&data.error.message)||('HTTP '+res.status));
+  }
   return data;
 }
 
@@ -639,7 +645,7 @@ $('kTest').onclick=()=>{applyVoice();speak(`Às suas ordens, ${CONFIG.tratamento
 $('cfg').onclick=openModal;
 $('kClose').onclick=()=>$('modal').classList.add('gone');
 $('kSave').onclick=()=>{
-  const key=$('kKey').value.replace(/[\s"'`]/g,'');
+  const key=cleanKey($('kKey').value.replace(/[\s"'`]/g,''));
   if(key&&!/^sk-ant-/.test(key)){log('e','Chave inválida: deve começar com "sk-ant-". Copie de console.anthropic.com → API Keys.');return}
   LS.set('jarvis_key',key);
   LS.set('jarvis_model',$('kModel').value.trim()||CONFIG.modelo);

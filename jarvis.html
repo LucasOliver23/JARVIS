@@ -97,6 +97,38 @@ form button{font:inherit;color:var(--c);background:transparent;border:0;border-l
 #modal input{font:inherit;background:transparent;border:1px solid var(--line);color:var(--tx);padding:8px}
 #modal .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
 
+/* ABAS / MÓDULOS */
+.tabs{display:flex;border-bottom:1px solid var(--line);margin-top:6px}
+.tabs button{flex:1;font:inherit;font-size:11px;letter-spacing:.2em;color:var(--mut);background:transparent;border:0;border-bottom:2px solid transparent;padding:10px 4px;cursor:pointer}
+.tabs button.on{color:var(--c);border-bottom-color:var(--c);text-shadow:0 0 8px var(--c)}
+.tabs button:hover{color:var(--c2)}
+#views{flex:1;position:relative;min-height:0}
+.view{position:absolute;inset:0;display:flex;flex-direction:column;visibility:hidden;opacity:0;transition:opacity .25s}
+.view.on{visibility:visible;opacity:1}
+.vbar{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;font-size:11px;color:var(--mut);letter-spacing:.15em;border-bottom:1px solid var(--line)}
+.vbody{flex:1;overflow-y:auto;padding:10px 12px;font-size:12px;line-height:1.5}
+.day{color:var(--c);letter-spacing:.2em;font-size:11px;margin:12px 0 6px;border-bottom:1px dashed var(--line);padding-bottom:3px}
+.ev{display:grid;grid-template-columns:54px 10px 1fr;gap:8px;align-items:start;padding:4px 0}
+.ev time{color:var(--c2)}.ev i{width:8px;height:8px;border-radius:50%;margin-top:5px;box-shadow:0 0 6px currentColor;background:currentColor}
+.ev small{display:block;color:var(--mut)}
+.ev.past{opacity:.45}
+.bucket{margin-bottom:12px}
+.bucket h3{font-size:11px;letter-spacing:.25em;margin-bottom:6px}
+.mail{border-left:2px solid var(--line);padding:4px 8px;margin-bottom:6px}
+.mail b{color:var(--tx);font-weight:normal}.mail small{display:block;color:var(--mut)}
+.mail.unread b{color:#fff;font-weight:bold}
+.news{padding:5px 0;border-bottom:1px solid rgba(0,212,255,.08)}
+.news a{color:var(--tx);text-decoration:none}.news a:hover{color:var(--c)}
+.news small{color:var(--mut);margin-left:6px}
+#digestTxt{white-space:pre-wrap;font-size:13px;color:var(--c2)}
+.wx{display:flex;gap:16px;align-items:baseline;margin-bottom:10px;color:var(--c)}
+.wx b{font-size:28px;font-weight:normal;text-shadow:0 0 10px var(--c)}
+.empty{color:var(--mut);padding:20px 0;text-align:center}
+#ant{font-size:11px;letter-spacing:.15em;color:var(--mut);margin-right:8px}
+#ant.on{color:#06d6a0}#ant.off{color:var(--bad)}
+#modal .box{max-height:92vh;overflow-y:auto}
+#modal h4{font-size:11px;letter-spacing:.3em;color:var(--c);margin-top:10px;border-top:1px solid var(--line);padding-top:10px}
+
 @media(max-width:820px){
   body{overflow:auto}
   #main{grid-template-columns:1fr;grid-template-rows:auto auto 420px;height:auto;min-height:100%}
@@ -125,7 +157,7 @@ form button{font:inherit;color:var(--c);background:transparent;border:0;border-l
   <header>
     <b id="title">JARVIS</b>
     <span id="status">OCIOSO</span>
-    <span><button id="mic" title="Ligar/desligar microfone">MIC</button> <button id="cfg" title="Configurações">⚙</button></span>
+    <span><span id="ant" title="Servidor local (server.js)">ANTENA ○</span><button id="mic" title="Ligar/desligar microfone">MIC</button> <button id="cfg" title="Configurações">⚙</button></span>
   </header>
   <section id="left">
     <div id="core" class="panel">
@@ -140,9 +172,20 @@ form button{font:inherit;color:var(--c);background:transparent;border:0;border-l
     </div>
   </section>
   <section id="graphwrap" class="panel">
-    <span class="tag">SECOND BRAIN</span>
-    <div id="graph"></div>
-    <div id="detail">Clique em um nó para ver a nota.</div>
+    <span class="tag">MÓDULOS</span>
+    <nav class="tabs" id="tabs">
+      <button data-v="graph" class="on">GRAFO</button><button data-v="agenda">AGENDA</button><button data-v="mail">E-MAILS</button><button data-v="news">RADAR</button><button data-v="digest">DIGEST</button>
+    </nav>
+    <div id="views">
+      <div class="view on" id="v-graph">
+        <div id="graph"></div>
+        <div id="detail">Clique em um nó para ver a nota.</div>
+      </div>
+      <div class="view" id="v-agenda"><div class="vbar"><span id="agMeta">TIMELINE</span><button class="btn" data-refresh="agenda">↻</button></div><div class="vbody" id="agBody"><div class="empty">Configure os links iCal em ⚙.</div></div></div>
+      <div class="view" id="v-mail"><div class="vbar"><span id="mlMeta">TRIAGEM</span><button class="btn" data-refresh="mail">↻</button></div><div class="vbody" id="mlBody"><div class="empty">Configure o e-mail e a senha de app em ⚙.</div></div></div>
+      <div class="view" id="v-news"><div class="vbar"><span id="nwMeta">RADAR RSS</span><button class="btn" data-refresh="news">↻</button></div><div class="vbody" id="nwBody"><div class="empty">Clique em ↻ ou diga "notícias".</div></div></div>
+      <div class="view" id="v-digest"><div class="vbar"><span id="dgMeta">MORNING DIGEST</span><button class="btn" data-refresh="digest">▶ GERAR</button></div><div class="vbody" id="dgBody"><div class="empty">Diga "bom dia" ou clique em ▶ GERAR.</div></div></div>
+    </div>
   </section>
 </main>
 
@@ -161,6 +204,21 @@ form button{font:inherit;color:var(--c);background:transparent;border:0;border-l
     <label>TOM <span id="kPitchV"></span></label>
     <input id="kPitch" type="range" min="0.5" max="1.5" step="0.05">
     <button class="btn" id="kTest" type="button">▶ TESTAR VOZ</button>
+    <h4>INTEGRAÇÕES</h4>
+    <label>SERVIDOR LOCAL (server.js)</label>
+    <input id="iSrv" placeholder="http://127.0.0.1:4242">
+    <label>LINK iCAL · CONTA 1 (endereço secreto)</label>
+    <input id="iCal1" type="password" placeholder="https://calendar.google.com/calendar/ical/.../basic.ics">
+    <label>LINK iCAL · CONTA 2</label>
+    <input id="iCal2" type="password" placeholder="https://calendar.google.com/calendar/ical/.../basic.ics">
+    <label>E-MAIL (GMAIL)</label>
+    <input id="iMail" placeholder="voce@gmail.com" autocomplete="off">
+    <label>SENHA DE APP (16 letras)</label>
+    <input id="iPass" type="password" placeholder="abcd efgh ijkl mnop" autocomplete="off">
+    <label>CIDADE (CLIMA)</label>
+    <input id="iCity">
+    <label>ASSUNTOS DE NOTÍCIAS (separados por vírgula)</label>
+    <input id="iTopics">
     <div class="row">
       <button class="btn" id="kSave">SALVAR</button>
       <button class="btn" id="kExport">EXPORTAR NOTAS</button>
@@ -180,9 +238,11 @@ const CONFIG={
   persona:'Formal/Mordomo',
   wake:'Ei Jarvis',
   voz:'masculina',
-  modelo:'claude-opus-5-5',
+  modelo:'claude-sonnet-5-5',
   api:'https://api.anthropic.com/v1/messages',
-  maxHist:16
+  economia:true,
+  maxHist:8,      // economia: histórico curto
+  maxTokens:450   // economia: respostas curtas
 };
 
 const AREA={
@@ -325,7 +385,7 @@ async function route(heard){
   if(cmd===null)return; // sem wake word: ignorado localmente, nada sai para a rede
   armedUntil=0;
   log('u',cmd);
-  await ask(cmd);
+  await handleCommand(cmd);
 }
 
 /* ================= CÉREBRO + CLAUDE MEM ================= */
@@ -349,6 +409,16 @@ function buildSystem(){
 `MEMÓRIA VIVA: Se notar informação nova/relevante sobre o usuário (fatos, metas, progresso, preferências, pessoas, datas), adicione ao final da resposta [[SAVE:area|titulo|texto]]. "area" é uma letra de A a H (${Object.keys(AREA).map(k=>k+'='+AREA[k].n).join(', ')}). "titulo" curto (até 4 palavras). "texto" uma frase objetiva. Não use "|" nem "]" dentro dos campos. Não salve o que já está no Second Brain. Pode usar mais de uma tag. Nunca mencione a tag na fala.`
   ].join('\n\n');
 }
+
+const apiHeaders=key=>({
+  'content-type':'application/json',
+  'x-api-key':key,
+  'anthropic-version':'2023-06-01',
+  'anthropic-dangerous-direct-browser-access':'true'
+});
+
+// Ponto único de entrada de comandos (voz e texto). Envelopado pelo OMNIROUTE no módulo de integrações.
+async function handleCommand(text){return ask(text)}
 
 const SAVE_RE=/\[\[\s*SAVE\s*:\s*([^|\]]+?)\s*\|\s*([^|\]]+?)\s*\|\s*([^\]]+?)\s*\]\]/gi;
 
@@ -374,15 +444,10 @@ async function ask(userText){
   try{
     const res=await fetch(CONFIG.api,{
       method:'POST',
-      headers:{
-        'content-type':'application/json',
-        'x-api-key':key,
-        'anthropic-version':'2023-06-01',
-        'anthropic-dangerous-direct-browser-access':'true'
-      },
+      headers:apiHeaders(key),
       body:JSON.stringify({
         model:LS.get('jarvis_model',CONFIG.modelo),
-        max_tokens:800,
+        max_tokens:CONFIG.maxTokens,
         system:buildSystem(),
         messages:history.slice(-CONFIG.maxHist)
       })
@@ -520,7 +585,7 @@ $('form').onsubmit=e=>{
   const v=$('txt').value.trim(); if(!v||thinking)return;
   $('txt').value='';log('u',v);
   if('speechSynthesis' in window)speechSynthesis.cancel();
-  ask(v);
+  handleCommand(v);
 };
 $('mic').onclick=()=>{
   if(!rec&&!initSTT())return;
@@ -551,6 +616,432 @@ $('btnAct').onclick=async()=>{
   await speak(`Sistemas online. Bem-vindo, ${CONFIG.tratamento}.`);
   if(!LS.get('jarvis_key',''))openModal();
 };
+</script>
+<script>
+'use strict';
+/* =====================================================================
+   MÓDULOS v6 · AGENDA · E-MAILS · RADAR · MORNING DIGEST
+   Envelopa o core (handleCommand, buildSystem, openModal) sem alterá-lo.
+   ===================================================================== */
+const MOD={
+  srv:'http://127.0.0.1:4242',
+  agendaDias:7,
+  mailHost:'imap.gmail.com', mailLimit:20, mailDias:3,
+  topicos:'Tecnologia, Economia', noticiasQtd:5,
+  cidade:'Aparecida de Goiânia',
+  staleMin:15
+};
+const ACC=['#00d4ff','#ffd166','#06d6a0','#ff9ff3'];
+const BUCKETS=[['AÇÃO','#ff6b6b'],['INFO','#00d4ff'],['RUÍDO','#5f8aa0']];
+
+// migração v2: modelo padrão passa a ser o Equilibrado (Sonnet)
+if(LS.get('jarvis_v',1)<2){if(LS.get('jarvis_model','')==='claude-opus-5-5')LS.set('jarvis_model',CONFIG.modelo);LS.set('jarvis_v',2)}
+
+const cfg=()=>({
+  srv:(LS.get('jarvis_srv','')||MOD.srv).replace(/\/+$/,''),
+  icals:LS.get('jarvis_ical',[]).filter(Boolean),
+  mail:LS.get('jarvis_mail',{}),
+  city:LS.get('jarvis_city','')||MOD.cidade,
+  topics:(LS.get('jarvis_topics','')||MOD.topicos).split(',').map(s=>s.trim()).filter(Boolean)
+});
+const DATA={agenda:LS.get('jarvis_agenda',null),mail:LS.get('jarvis_mailbox',null),news:null,wx:null};
+const fresh=o=>o&&Date.now()-o.ts<MOD.staleMin*6e4;
+
+/* ---------- utilidades ---------- */
+const hm=d=>d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+const sod=(d,o=0)=>new Date(d.getFullYear(),d.getMonth(),d.getDate()+o);
+function dayLabel(d){
+  const k=Math.round((sod(d)-sod(new Date()))/864e5);
+  if(k===0)return 'HOJE';if(k===1)return 'AMANHÃ';
+  return d.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'}).toUpperCase();
+}
+const offline=()=>new Error('Antena offline. Rode node server.js no computador.');
+function setAnt(ok){const a=$('ant');a.textContent='ANTENA '+(ok?'●':'○');a.className=ok?'on':'off'}
+async function antenna(){
+  try{const r=await fetch(cfg().srv+'/health',{cache:'no-store'});setAnt(r.ok);return r.ok}
+  catch(e){setAnt(false);return false}
+}
+async function srvGet(url){
+  let r;
+  try{r=await fetch(cfg().srv+'/proxy?url='+encodeURIComponent(url),{cache:'no-store'})}catch(e){setAnt(false);throw offline()}
+  setAnt(true);
+  if(!r.ok)throw new Error('Proxy '+r.status+': '+(await r.text()).slice(0,140));
+  return r.text();
+}
+async function claude(system,content,max){
+  const key=LS.get('jarvis_key','');
+  if(!key)throw new Error('API key não configurada.');
+  const r=await fetch(CONFIG.api,{method:'POST',headers:apiHeaders(key),body:JSON.stringify({
+    model:LS.get('jarvis_model',CONFIG.modelo),max_tokens:max,system,messages:[{role:'user',content}]})});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error((d.error&&d.error.message)||('HTTP '+r.status));
+  return (d.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('').trim();
+}
+
+/* ---------- ICS: unfolding + RRULE básico ---------- */
+function zoned(a,tz){
+  const g=Date.UTC(...a);
+  try{
+    const p=Object.fromEntries(new Intl.DateTimeFormat('en-US',{timeZone:tz,hourCycle:'h23',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'})
+      .formatToParts(new Date(g)).map(x=>[x.type,x.value]));
+    return new Date(g-(Date.UTC(+p.year,+p.month-1,+p.day,+p.hour,+p.minute,+p.second)-g));
+  }catch(e){return new Date(...a)}
+}
+function icsDate(v,params,tz){
+  v=String(v).trim();
+  if(/^\d{8}$/.test(v)||/VALUE=DATE(?!-)/i.test(params))return {d:new Date(+v.slice(0,4),+v.slice(4,6)-1,+v.slice(6,8)),allDay:true};
+  const m=/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})(Z)?$/.exec(v);
+  if(!m)return null;
+  const a=[+m[1],+m[2]-1,+m[3],+m[4],+m[5],+m[6]];
+  return {d:m[7]?new Date(Date.UTC(...a)):tz?zoned(a,tz):new Date(...a),allDay:false};
+}
+function durMs(v){
+  const m=/^([-+])?P(?:(\d+)W)?(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$/.exec(v||'');
+  if(!m)return 0;
+  const ms=((+m[2]||0)*604800+(+m[3]||0)*86400+(+m[4]||0)*3600+(+m[5]||0)*60+(+m[6]||0))*1e3;
+  return m[1]==='-'?-ms:ms;
+}
+const unesc=v=>v.replace(/\\n/gi,' ').replace(/\\([,;\\])/g,'$1').trim();
+const WD=['SU','MO','TU','WE','TH','FR','SA'];
+
+function occurrences(e,from,to,len){
+  if(!e.rrule)return e.start<to&&e.start.getTime()+len>from?[e.start]:[];
+  const r=Object.fromEntries(e.rrule.split(';').map(p=>p.split('=')));
+  const iv=+(r.INTERVAL||1), count=r.COUNT?+r.COUNT:Infinity, by=r.BYDAY?r.BYDAY.split(','):null;
+  const bmd=r.BYMONTHDAY?r.BYMONTHDAY.split(',').map(Number):null;
+  let until=null;
+  if(r.UNTIL){const u=icsDate(r.UNTIL,'');if(u)until=u.allDay?new Date(u.d.getTime()+864e5-1):u.d}
+  const s=e.start, d0=sod(s), out=[];
+  const match=d=>{
+    const days=Math.round((sod(d)-d0)/864e5), wd=WD[d.getDay()];
+    switch(r.FREQ){
+      case 'DAILY':return days%iv===0&&(!by||by.some(b=>b.slice(-2)===wd));
+      case 'WEEKLY':return Math.floor((days+d0.getDay())/7)%iv===0&&(by?by.some(b=>b.slice(-2)===wd):d.getDay()===s.getDay());
+      case 'MONTHLY':{
+        const mo=(d.getFullYear()-s.getFullYear())*12+d.getMonth()-s.getMonth();
+        if(mo%iv)return false;
+        if(by)return by.some(b=>{
+          const m=/^([+-]?\d)?(\w\w)$/.exec(b);if(!m||m[2]!==wd)return false;if(!m[1])return true;
+          const k=+m[1], last=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();
+          return k>0?Math.ceil(d.getDate()/7)===k:Math.ceil((last-d.getDate()+1)/7)===-k;
+        });
+        return bmd?bmd.includes(d.getDate()):d.getDate()===s.getDate();
+      }
+      case 'YEARLY':return (d.getFullYear()-s.getFullYear())%iv===0&&d.getMonth()===s.getMonth()&&d.getDate()===s.getDate();
+    }
+    return false;
+  };
+  let n=0;
+  for(let i=0;i<20000;i++){
+    const d=new Date(s.getFullYear(),s.getMonth(),s.getDate()+i,s.getHours(),s.getMinutes(),s.getSeconds());
+    if(d>=to||(until&&d>until)||n>=count)break;
+    if(!match(d))continue;
+    n++;
+    if(d.getTime()+len>from&&!e.ex.has(d.getTime()))out.push(d);
+  }
+  return out;
+}
+
+function parseICS(txt,from,to){
+  const lines=txt.replace(/\r\n?/g,'\n').replace(/\n[ \t]/g,'').split('\n'); // unfolding RFC 5545
+  const evs=[];let cur=null;
+  for(const l of lines){
+    if(l==='BEGIN:VEVENT'){cur={ex:new Set()};continue}
+    if(l==='END:VEVENT'){if(cur)evs.push(cur);cur=null;continue}
+    if(!cur)continue;
+    const i=l.indexOf(':');if(i<0)continue;
+    const head=l.slice(0,i).split(';'), name=head[0].toUpperCase(), params=head.slice(1).join(';'), val=l.slice(i+1);
+    const tz=(/TZID=([^;]+)/i.exec(params)||[])[1];
+    let d;
+    switch(name){
+      case 'DTSTART':if((d=icsDate(val,params,tz))){cur.start=d.d;cur.allDay=d.allDay}break;
+      case 'DTEND':if((d=icsDate(val,params,tz)))cur.end=d.d;break;
+      case 'DURATION':cur.dur=val;break;
+      case 'SUMMARY':cur.t=unesc(val);break;
+      case 'LOCATION':cur.loc=unesc(val);break;
+      case 'RRULE':cur.rrule=val;break;
+      case 'EXDATE':val.split(',').forEach(v=>{const x=icsDate(v,params,tz);if(x)cur.ex.add(x.d.getTime())});break;
+      case 'RECURRENCE-ID':if((d=icsDate(val,params,tz)))cur.rid=d.d.getTime();break;
+      case 'UID':cur.uid=val;break;
+      case 'STATUS':cur.cancel=/CANCELLED/i.test(val);break;
+    }
+  }
+  const over=new Set(evs.filter(e=>e.rid!=null).map(e=>e.uid+'|'+e.rid));
+  const out=[];
+  for(const e of evs){
+    if(!e.start||e.cancel)continue;
+    const end=e.end||new Date(e.start.getTime()+(e.dur?durMs(e.dur):e.allDay?864e5:0));
+    const len=Math.max(0,end-e.start);
+    for(const s of occurrences(e,from,to,len)){
+      if(e.rid==null&&over.has(e.uid+'|'+s.getTime()))continue;
+      out.push({s,e:new Date(s.getTime()+len),allDay:!!e.allDay,t:e.t||'(sem título)',loc:e.loc||''});
+    }
+  }
+  return out;
+}
+
+/* ---------- AGENDA ---------- */
+const agEvents=()=>DATA.agenda?DATA.agenda.events.map(e=>({...e,s:new Date(e.s),e:new Date(e.e)})):[];
+function eventsOn(off){
+  const a=sod(new Date(),off), b=sod(new Date(),off+1);
+  return agEvents().filter(e=>e.s<b&&e.e>a);
+}
+async function loadAgenda(force){
+  const c=cfg();
+  if(!c.icals.length)throw new Error('Nenhum link iCal configurado. Abra as configurações.');
+  if(!force&&fresh(DATA.agenda))return DATA.agenda;
+  const from=sod(new Date()), to=sod(new Date(),MOD.agendaDias+1);
+  const res=await Promise.allSettled(c.icals.map(srvGet));
+  const ok=res.filter(r=>r.status==='fulfilled');
+  if(!ok.length)throw res[0].reason;
+  res.forEach(r=>r.status==='rejected'&&log('e','Agenda: '+r.reason.message));
+  const events=[];
+  res.forEach((r,i)=>{if(r.status==='fulfilled')parseICS(r.value,from,to).forEach(e=>events.push({...e,acc:i}))});
+  events.sort((a,b)=>a.s-b.s||b.allDay-a.allDay);
+  DATA.agenda={ts:Date.now(),events:events.map(e=>({...e,s:e.s.toISOString(),e:e.e.toISOString()}))};
+  LS.set('jarvis_agenda',DATA.agenda);
+  renderAgenda();
+  return DATA.agenda;
+}
+function renderAgenda(){
+  if(!DATA.agenda)return;
+  const evs=agEvents(), now=new Date(), today=sod(now);
+  $('agMeta').textContent=`TIMELINE · ${evs.length} EVENTOS · ${hm(new Date(DATA.agenda.ts))}`;
+  if(!evs.length){$('agBody').innerHTML='<div class="empty">Nenhum compromisso nos próximos dias.</div>';return}
+  let html='',last='';
+  for(const e of evs){
+    const dl=dayLabel(e.s<today?today:e.s);
+    if(dl!==last){html+=`<div class="day">${esc(dl)}</div>`;last=dl}
+    html+=`<div class="ev${e.e<now?' past':''}"><time>${e.allDay?'DIA':hm(e.s)}</time><i style="color:${ACC[e.acc%ACC.length]}"></i><div>${esc(e.t)}${e.loc?`<small>${esc(e.loc)}</small>`:''}</div></div>`;
+  }
+  $('agBody').innerHTML=html;
+}
+const agendaLine=off=>eventsOn(off).slice(0,8).map(e=>(e.allDay?'dia todo':hm(e.s))+' '+cut(e.t,40)).join('; ');
+
+/* ---------- E-MAILS + TRIAGEM (cache: zero reprocessamento) ---------- */
+function bucketOf(v){const n=norm(v);return n.startsWith('ac')?'AÇÃO':n.startsWith('ru')?'RUÍDO':'INFO'}
+async function triage(list){
+  const cache=LS.get('jarvis_triage',{}), novos=list.filter(m=>!cache[m.id]);
+  if(!novos.length)return cache;
+  $('mlMeta').textContent='TRIANDO '+novos.length+' NOVOS...';
+  const ctx=notes.filter(n=>'CDE'.includes(n.area)).map(n=>n.x).join(' ');
+  const sys=`Você faz triagem de e-mails para ${CONFIG.tratamento}. Contexto dele: ${ctx}
+Baldes: AÇÃO = exige resposta ou ação (pagamento, prazo, pessoa real pedindo algo, trabalho, segurança da conta). INFO = útil, sem ação. RUÍDO = marketing, newsletter, promoção, notificação automática.
+Responda SOMENTE um array JSON, sem texto extra: [{"id":0,"balde":"AÇÃO|INFO|RUÍDO","resumo":"até 12 palavras em pt-BR"}]`;
+  const body=novos.map((m,i)=>`${i}|${m.from} <${m.fromAddr}>|${m.subject}|${(m.snippet||'').slice(0,220)}`).join('\n');
+  const txt=await claude(sys,'E-mails (id|remetente|assunto|trecho):\n'+body,80+novos.length*50);
+  let arr=[];
+  try{arr=JSON.parse((txt.match(/\[[\s\S]*\]/)||['[]'])[0])}catch(e){throw new Error('Triagem: JSON inválido da IA.')}
+  arr.forEach(o=>{const m=novos[+o.id];if(m)cache[m.id]={b:bucketOf(o.balde||''),r:String(o.resumo||'').slice(0,160),ts:Date.now()}});
+  const keys=Object.keys(cache);
+  if(keys.length>500)keys.sort((a,b)=>cache[a].ts-cache[b].ts).slice(0,keys.length-500).forEach(k=>delete cache[k]);
+  LS.set('jarvis_triage',cache);
+  return cache;
+}
+async function loadMail(force){
+  const m=cfg().mail;
+  if(!m.user||!m.pass)throw new Error('Configure o e-mail e a senha de app nas configurações.');
+  if(!force&&fresh(DATA.mail))return DATA.mail;
+  let r;
+  try{r=await fetch(cfg().srv+'/emails',{method:'POST',headers:{'content-type':'application/json'},
+    body:JSON.stringify({host:MOD.mailHost,user:m.user,pass:m.pass,limit:MOD.mailLimit,days:MOD.mailDias})})}
+  catch(e){setAnt(false);throw offline()}
+  setAnt(true);
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error('E-mail: '+(d.error||'HTTP '+r.status));
+  DATA.mail={ts:Date.now(),list:d.messages||[]};
+  LS.set('jarvis_mailbox',DATA.mail);
+  try{await triage(DATA.mail.list)}catch(e){log('e',e.message)}
+  renderMail();
+  return DATA.mail;
+}
+function mailBuckets(){
+  const cache=LS.get('jarvis_triage',{}), out={'AÇÃO':[],'INFO':[],'RUÍDO':[]};
+  (DATA.mail?DATA.mail.list:[]).forEach(m=>{const t=cache[m.id];out[t?t.b:'INFO'].push({...m,r:t?t.r:'(sem triagem)'})});
+  return out;
+}
+function renderMail(){
+  if(!DATA.mail)return;
+  const B=mailBuckets();
+  $('mlMeta').textContent=`TRIAGEM · ${DATA.mail.list.length} E-MAILS · ${hm(new Date(DATA.mail.ts))}`;
+  $('mlBody').innerHTML=BUCKETS.map(([k,c])=>`<div class="bucket"><h3 style="color:${c}">${k} · ${B[k].length}</h3>${
+    B[k].map(m=>`<div class="mail${m.seen?'':' unread'}" style="border-left-color:${c}"><b>${esc(m.from)}</b> — ${esc(m.subject)}<small>${esc(m.r)}</small></div>`).join('')||'<small class="empty">—</small>'}</div>`).join('');
+}
+const mailActionLine=()=>mailBuckets()['AÇÃO'].slice(0,5).map(m=>cut(m.from,25)+': '+cut(m.r||m.subject,70)).join('; ');
+
+/* ---------- RADAR RSS ---------- */
+const GN='hl=pt-BR&gl=BR&ceid=BR:pt-419';
+const SECTION={tecnologia:'TECHNOLOGY',tech:'TECHNOLOGY',economia:'BUSINESS',negocios:'BUSINESS',ciencia:'SCIENCE',saude:'HEALTH',esportes:'SPORTS',entretenimento:'ENTERTAINMENT',mundo:'WORLD',brasil:'NATION'};
+const newsUrl=t=>SECTION[norm(t)]?`https://news.google.com/rss/headlines/section/topic/${SECTION[norm(t)]}?${GN}`:`https://news.google.com/rss/search?q=${encodeURIComponent(t)}&${GN}`;
+async function loadNews(force){
+  if(!force&&fresh(DATA.news))return DATA.news;
+  const topics=await Promise.all(cfg().topics.map(async t=>{
+    const doc=new DOMParser().parseFromString(await srvGet(newsUrl(t)),'text/xml');
+    const items=[...doc.querySelectorAll('item')].slice(0,MOD.noticiasQtd).map(it=>{
+      const g=s=>(it.querySelector(s)||{}).textContent||'';
+      const raw=g('title'), src=g('source');
+      return {t:src&&raw.endsWith(' - '+src)?raw.slice(0,-(src.length+3)):raw,src,link:g('link')};
+    });
+    return {topic:t,items};
+  }));
+  DATA.news={ts:Date.now(),topics};
+  renderNews();
+  return DATA.news;
+}
+function renderNews(){
+  if(!DATA.news)return;
+  $('nwMeta').textContent=`RADAR RSS · ${hm(new Date(DATA.news.ts))}`;
+  $('nwBody').innerHTML=DATA.news.topics.map(g=>`<div class="day">${esc(g.topic.toUpperCase())}</div>${
+    g.items.map(n=>`<div class="news"><a href="${/^https?:\/\//.test(n.link)?esc(n.link):'#'}" target="_blank" rel="noopener noreferrer">${esc(n.t)}</a><small>${esc(n.src)}</small></div>`).join('')||'<div class="empty">Sem itens.</div>'}`).join('');
+}
+
+/* ---------- CLIMA (Open-Meteo, sem chave) ---------- */
+const WMO={0:'céu limpo',1:'predominantemente limpo',2:'parcialmente nublado',3:'nublado',45:'neblina',48:'neblina',51:'garoa fraca',53:'garoa',55:'garoa forte',61:'chuva fraca',63:'chuva moderada',65:'chuva forte',80:'pancadas de chuva',81:'pancadas de chuva',82:'pancadas fortes',95:'trovoadas',96:'trovoadas com granizo',99:'trovoadas com granizo'};
+async function loadWeather(){
+  const city=cfg().city;
+  let geo=LS.get('jarvis_geo',null);
+  if(!geo||geo.q!==city){
+    const g=await (await fetch('https://geocoding-api.open-meteo.com/v1/search?count=1&language=pt&name='+encodeURIComponent(city.split(/[-,]/)[0].trim()))).json();
+    const r=g.results&&g.results[0];
+    if(!r)throw new Error('Cidade não encontrada: '+city);
+    geo={q:city,lat:r.latitude,lon:r.longitude,name:r.name};
+    LS.set('jarvis_geo',geo);
+  }
+  const w=await (await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${geo.lat}&longitude=${geo.lon}&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=1`)).json();
+  DATA.wx={city:geo.name,now:Math.round(w.current.temperature_2m),desc:WMO[w.current.weather_code]||'condição indefinida',
+    max:Math.round(w.daily.temperature_2m_max[0]),min:Math.round(w.daily.temperature_2m_min[0]),rain:w.daily.precipitation_probability_max[0]??0};
+  return DATA.wx;
+}
+
+/* ---------- COMANDOS LOCAIS ---------- */
+function showTab(v){
+  document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
+  document.querySelectorAll('.view').forEach(x=>x.classList.toggle('on',x.id==='v-'+v));
+}
+async function cmdAgenda(n){
+  showTab('agenda');
+  await loadAgenda(/atualiz/.test(n));
+  const T=CONFIG.tratamento;
+  if(/semana|proximos/.test(n)){
+    const evs=agEvents().filter(e=>e.e>new Date());
+    if(!evs.length)return `Nada agendado para os próximos ${MOD.agendaDias} dias, ${T}.`;
+    return `Nos próximos ${MOD.agendaDias} dias são ${evs.length} compromissos, ${T}. Os próximos: `+
+      evs.slice(0,4).map(e=>`${dayLabel(e.s).toLowerCase()}${e.allDay?'':' às '+hm(e.s)}, ${e.t}`).join('. ')+'.';
+  }
+  const off=/amanha/.test(n)?1:0, quando=off?'amanhã':'hoje', evs=eventsOn(off);
+  if(!evs.length)return `Sua agenda de ${quando} está livre, ${T}.`;
+  return `${off?'Amanhã':'Hoje'} você tem ${evs.length} compromisso${evs.length>1?'s':''}, ${T}. `+
+    evs.slice(0,5).map(e=>e.allDay?`O dia todo, ${e.t}`:`Às ${hm(e.s)}, ${e.t}`).join('. ')+
+    (evs.length>5?`. E mais ${evs.length-5}.`:'.');
+}
+async function cmdMail(n){
+  showTab('mail');
+  await loadMail(/atualiz|novos/.test(n));
+  const B=mailBuckets(), a=B['AÇÃO'], T=CONFIG.tratamento;
+  const tail=` Além disso, ${B['INFO'].length} informativos e ${B['RUÍDO'].length} de ruído.`;
+  if(!a.length)return `Nenhum e-mail exigindo ação, ${T}.`+tail;
+  return `${a.length} e-mail${a.length>1?'s':''} de ação, ${T}. `+a.slice(0,3).map(m=>`De ${m.from}: ${m.r}`).join('. ')+'.'+tail;
+}
+async function cmdNews(n){
+  showTab('news');
+  await loadNews(/atualiz/.test(n));
+  return DATA.news.topics.filter(g=>g.items.length).map(g=>`Em ${g.topic}: `+g.items.slice(0,3).map(i=>i.t).join('. ')).join('. ')+'.';
+}
+async function cmdDigest(){
+  showTab('digest');
+  $('dgBody').innerHTML='<div class="empty">Compilando dados...</div>';
+  const [wx,,,nw]=await Promise.allSettled([loadWeather(),loadAgenda(),loadMail(),loadNews()]);
+  const w=wx.status==='fulfilled'?wx.value:null;
+  const dados=[
+    w?`CLIMA ${w.city}: agora ${w.now}°C, ${w.desc}; mínima ${w.min}°C, máxima ${w.max}°C, chance de chuva ${w.rain}%.`:'CLIMA: indisponível.',
+    'AGENDA HOJE: '+(DATA.agenda?agendaLine(0)||'livre':'não configurada'),
+    'E-MAILS AÇÃO: '+(DATA.mail?mailActionLine()||'nenhum':'não configurado'),
+    'MANCHETES: '+(nw.status==='fulfilled'?DATA.news.topics.map(g=>g.topic+': '+g.items.slice(0,3).map(i=>i.t).join(' | ')).join(' || '):'indisponível')
+  ].join('\n');
+  const sys=`Você é ${CONFIG.nome}, persona ${CONFIG.persona}, leal e com leve humor britânico. Trate o usuário como "${CONFIG.tratamento}". O texto será FALADO por TTS: português do Brasil, sem markdown, sem listas, sem emojis, sem tags.`;
+  const txt=(await claude(sys,`Data: ${new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'})}.\n${dados}\n\nEscreva o briefing matinal: saudação de bom dia, 5 a 8 frases curtas e humanizadas, priorize o que exige ação, cite no máximo 2 manchetes.`,500)).replace(SAVE_RE,'').trim();
+  LS.set('jarvis_digest',{d:new Date().toDateString(),txt});
+  $('dgMeta').textContent='MORNING DIGEST · '+hm(new Date());
+  $('dgBody').innerHTML=(w?`<div class="wx"><b>${w.now}°</b><span>${esc(w.city.toUpperCase())} · ${esc(w.desc)} · ${w.min}°/${w.max}° · ☂ ${w.rain}%</span></div>`:'')+`<div id="digestTxt">${esc(txt)}</div>`;
+  return txt;
+}
+
+/* ---------- OMNIROUTE: intercepta antes da API ---------- */
+const ROUTES=[
+  [/\b(bom dia|briefing|resumo do dia|morning digest|digest)\b/,cmdDigest],
+  [/\b(minha agenda|meus compromissos|agenda (de|da|pra|para) (hoje|amanha|semana)|o que (eu )?tenho (hoje|amanha|na agenda)|proximos compromissos|atualiza(r)? (a )?agenda)\b/,cmdAgenda],
+  [/\b(meus emails?|caixa de entrada|novos emails?|tenho (algum |novos? )?emails?|atualiza(r)? (os )?emails?)\b/,cmdMail],
+  [/\b(noticias|manchetes|radar)\b/,cmdNews]
+];
+async function runLocal(fn,n){
+  thinking=true;setState('thinking');
+  let say='';
+  try{say=await fn(n||'')}catch(e){log('e',e.message);say=e.message}
+  thinking=false;
+  if(say){log('a',say);await speak(say)}else restState();
+}
+async function omniroute(text){
+  const n=norm(text).replace(/e-mail/g,'email').replace(/[^a-z0-9\s]/g,' ').replace(/\s+/g,' ').trim();
+  if(n.split(' ').length>8)return false; // frases longas vão para a IA
+  const r=ROUTES.find(([re])=>re.test(n));
+  if(!r)return false;
+  log('s','OMNIROUTE › comando local');
+  await runLocal(r[1],n);
+  return true;
+}
+const _handleCore=handleCommand;
+handleCommand=async text=>(await omniroute(text))||_handleCore(text);
+
+/* ---------- MOTOR DE ECONOMIA: contexto compacto no topo do system prompt ---------- */
+const _buildCore=buildSystem;
+buildSystem=()=>{
+  const ctx=[];
+  if(DATA.agenda)ctx.push('AGENDA HOJE: '+(agendaLine(0)||'livre'));
+  if(DATA.mail)ctx.push('E-MAILS AÇÃO: '+(mailActionLine()||'nenhum'));
+  return (ctx.length?'CONTEXTO EM TEMPO REAL:\n'+ctx.join('\n')+'\n\n':'')+_buildCore();
+};
+
+/* ---------- UI: abas, refresh, configurações ---------- */
+$('tabs').onclick=e=>{const v=e.target.dataset&&e.target.dataset.v;if(v)showTab(v)};
+$('views').addEventListener('click',e=>{
+  const k=e.target.dataset&&e.target.dataset.refresh;if(!k||thinking)return;
+  if(k==='digest')return runLocal(cmdDigest);
+  const fn={agenda:loadAgenda,mail:loadMail,news:loadNews}[k];
+  e.target.disabled=true;
+  fn(true).catch(err=>log('e',err.message)).finally(()=>{e.target.disabled=false});
+});
+const _openCore=openModal;
+openModal=()=>{
+  _openCore();
+  const ic=LS.get('jarvis_ical',[]), m=LS.get('jarvis_mail',{});
+  $('iSrv').value=LS.get('jarvis_srv','');$('iCal1').value=ic[0]||'';$('iCal2').value=ic[1]||'';
+  $('iMail').value=m.user||'';$('iPass').value=m.pass||'';
+  $('iCity').value=LS.get('jarvis_city','')||MOD.cidade;$('iTopics').value=LS.get('jarvis_topics','')||MOD.topicos;
+};
+$('cfg').onclick=openModal;
+$('kSave').addEventListener('click',()=>{
+  const ic=[$('iCal1').value,$('iCal2').value].map(v=>v.replace(/\s/g,''));
+  if(ic.some(u=>u&&!/^https:\/\/calendar\.google\.com\//.test(u)))log('e','Link iCal deve começar com https://calendar.google.com/');
+  const old=JSON.stringify([LS.get('jarvis_ical',[]),LS.get('jarvis_mail',{}),LS.get('jarvis_topics','')]);
+  LS.set('jarvis_srv',$('iSrv').value.trim());
+  LS.set('jarvis_ical',ic);
+  LS.set('jarvis_mail',{user:$('iMail').value.trim(),pass:$('iPass').value.replace(/\s/g,'')});
+  LS.set('jarvis_city',$('iCity').value.trim());
+  LS.set('jarvis_topics',$('iTopics').value.trim());
+  if(old!==JSON.stringify([ic,LS.get('jarvis_mail',{}),LS.get('jarvis_topics','')])){DATA.agenda&&(DATA.agenda.ts=0);DATA.mail&&(DATA.mail.ts=0);DATA.news=null}
+  antenna();
+});
+
+/* ---------- boot dos módulos ---------- */
+renderAgenda();renderMail();
+(()=>{const d=LS.get('jarvis_digest',null);if(d&&d.d===new Date().toDateString())$('dgBody').innerHTML=`<div id="digestTxt">${esc(d.txt)}</div>`})();
+$('btnAct').addEventListener('click',()=>setTimeout(async()=>{
+  if(!(await antenna())){log('s','Antena offline — agenda, e-mails e notícias exigem "node server.js".');return}
+  const c=cfg();
+  if(c.icals.length)loadAgenda().catch(e=>log('e',e.message));
+  if(c.mail.user&&c.mail.pass)loadMail().catch(e=>log('e',e.message));
+},2500));
+setInterval(antenna,60000);
 </script>
 </body>
 </html>

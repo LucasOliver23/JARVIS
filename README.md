@@ -14,3 +14,19 @@ Arquivo único `jarvis.html` (HTML + CSS + JS puros, zero dependências).
 - Notas iniciais embutidas em `NOTES`; alterações persistem em `localStorage["jarvis_notes"]`.
 - O Jarvis salva informações novas sozinho via tag `[[SAVE:area|titulo|texto]]` (removida antes da fala).
 - Clique em um nó do grafo para ver/apagar a nota. Exportar/resetar em ⚙.
+
+## v6 · Agenda, E-mails, Notícias e Morning Digest
+
+`server.js` (Node puro, sem `npm install`) é a "Antena": roda em `127.0.0.1:4242`, busca o iCal do Google
+Agenda e o RSS do Google Notícias (allowlist) e lê o Gmail via IMAP **somente leitura** (`EXAMINE` + `BODY.PEEK`:
+nada é marcado como lido).
+
+1. **Node:** instale o Node.js LTS (nodejs.org).
+2. **Abrir:** na pasta do projeto rode `node server.js` e deixe a janela aberta. Abra o `jarvis.html` (Edge/Chrome).
+3. **Configurar (⚙ → Integrações):**
+   - Link iCal: Google Agenda → Configurações → sua agenda → *Endereço secreto no formato iCal*.
+   - Senha de app: ative a verificação em 2 etapas e gere em myaccount.google.com/apppasswords.
+4. **Testar:** "Ei Jarvis, minha agenda" · "meus e-mails" · "notícias" · "bom dia" (ou ▶ GERAR na aba DIGEST).
+
+Comandos locais não gastam tokens; só a triagem de e-mails novos (1 chamada por lote, com cache) e o
+Morning Digest (1 chamada) usam a API.

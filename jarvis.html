@@ -92,6 +92,8 @@ form button{font:inherit;color:var(--c);background:transparent;border:0;border-l
 #modal .box{background:#06121e;border:1px solid var(--c);padding:22px;width:min(440px,92vw);display:flex;flex-direction:column;gap:10px;box-shadow:0 0 30px var(--cd)}
 #modal h2{font-size:14px;letter-spacing:.3em;color:var(--c)}
 #modal label{font-size:11px;color:var(--mut);letter-spacing:.15em}
+#modal select{font:inherit;background:#06121e;border:1px solid var(--line);color:var(--tx);padding:8px}
+#modal input[type=range]{padding:0;accent-color:var(--c)}
 #modal input{font:inherit;background:transparent;border:1px solid var(--line);color:var(--tx);padding:8px}
 #modal .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
 
@@ -152,6 +154,13 @@ form button{font:inherit;color:var(--c);background:transparent;border:0;border-l
     <input id="kKey" type="password" placeholder="sk-ant-...">
     <label>MODELO</label>
     <input id="kModel">
+    <label>VOZ</label>
+    <select id="kVoice"></select>
+    <label>VELOCIDADE <span id="kRateV"></span></label>
+    <input id="kRate" type="range" min="0.7" max="1.4" step="0.05">
+    <label>TOM <span id="kPitchV"></span></label>
+    <input id="kPitch" type="range" min="0.5" max="1.5" step="0.05">
+    <button class="btn" id="kTest" type="button">▶ TESTAR VOZ</button>
     <div class="row">
       <button class="btn" id="kSave">SALVAR</button>
       <button class="btn" id="kExport">EXPORTAR NOTAS</button>
@@ -222,9 +231,14 @@ function setState(s){document.body.className=s;$('status').textContent=STATE_TXT
 function restState(){setState(sttOn?'listening':'idle')}
 
 /* ================= TTS ================= */
+// Vozes neurais (Edge: "Microsoft Antonio Online (Natural)") soam muito mais humanas
 function pickVoice(){
   if(!('speechSynthesis' in window))return;
-  const vs=speechSynthesis.getVoices().filter(v=>/^pt[-_]BR/i.test(v.lang));
+  const all=speechSynthesis.getVoices(), saved=LS.get('jarvis_voice','');
+  voice=all.find(v=>v.name===saved)||null;
+  fillVoices(all);
+  if(voice)return;
+  const vs=all.filter(v=>/^pt[-_]BR/i.test(v.lang)).sort((a,b)=>/natural|online|neural/i.test(b.name)-/natural|online|neural/i.test(a.name));
   const male=/daniel|ant[oô]nio|felipe|ricardo|thiago|paulo|male|mascul/i;
   const fem=/maria|francisca|luciana|vit[oó]ria|raquel|helo|female|femin|google portugu/i;
   const [want,avoid]=CONFIG.voz==='feminina'?[fem,male]:[male,fem];
@@ -246,7 +260,7 @@ function speak(text){
       if(i>=parts.length){done();return}
       const u=new SpeechSynthesisUtterance(parts[i++]);
       u.lang='pt-BR'; if(voice)u.voice=voice;
-      u.rate=1.03; u.pitch=CONFIG.voz==='feminina'?1.1:.9;
+      u.rate=LS.get('jarvis_rate',1); u.pitch=LS.get('jarvis_pitch',1);
       u.onend=next; u.onerror=next;
       guard=setTimeout(next,u.text.length*110+4000); // onend às vezes não dispara
       speechSynthesis.speak(u);
@@ -460,7 +474,26 @@ $('detail').addEventListener('click',e=>{
 });
 
 /* ================= CONFIG MODAL ================= */
-function openModal(){$('kKey').value=LS.get('jarvis_key','');$('kModel').value=LS.get('jarvis_model',CONFIG.modelo);$('modal').classList.remove('gone')}
+function fillVoices(all){
+  const sel=$('kVoice'); if(!sel)return;
+  const pt=all.filter(v=>/^pt/i.test(v.lang)), list=pt.length?pt:all;
+  sel.innerHTML=list.map(v=>`<option value="${esc(v.name)}">${esc(v.name)} (${esc(v.lang)})${/natural|online|neural/i.test(v.name)?' ★':''}</option>`).join('');
+  if(voice)sel.value=voice.name;
+}
+const sliders=()=>{$('kRateV').textContent=(+$('kRate').value).toFixed(2);$('kPitchV').textContent=(+$('kPitch').value).toFixed(2)};
+function openModal(){
+  $('kKey').value=LS.get('jarvis_key','');$('kModel').value=LS.get('jarvis_model',CONFIG.modelo);
+  $('kRate').value=LS.get('jarvis_rate',1);$('kPitch').value=LS.get('jarvis_pitch',1);sliders();
+  if('speechSynthesis' in window)fillVoices(speechSynthesis.getVoices());
+  $('modal').classList.remove('gone');
+}
+$('kRate').oninput=$('kPitch').oninput=sliders;
+const applyVoice=()=>{
+  const v=speechSynthesis.getVoices().find(x=>x.name===$('kVoice').value);
+  if(v){voice=v;LS.set('jarvis_voice',v.name)}
+  LS.set('jarvis_rate',+$('kRate').value);LS.set('jarvis_pitch',+$('kPitch').value);
+};
+$('kTest').onclick=()=>{applyVoice();speak(`Às suas ordens, ${CONFIG.tratamento}. Todos os sistemas operando normalmente.`)};
 $('cfg').onclick=openModal;
 $('kClose').onclick=()=>$('modal').classList.add('gone');
 $('kSave').onclick=()=>{
@@ -468,6 +501,7 @@ $('kSave').onclick=()=>{
   if(key&&!/^sk-ant-/.test(key)){log('e','Chave inválida: deve começar com "sk-ant-". Copie de console.anthropic.com → API Keys.');return}
   LS.set('jarvis_key',key);
   LS.set('jarvis_model',$('kModel').value.trim()||CONFIG.modelo);
+  if('speechSynthesis' in window)applyVoice();
   $('modal').classList.add('gone');log('s','Configurações salvas.');
 };
 $('kExport').onclick=()=>{

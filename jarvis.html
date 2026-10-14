@@ -1150,25 +1150,35 @@ async function elTTS(text,key,vid){
     body:JSON.stringify({text:text.slice(0,EL.maxChars),model_id:EL.model})
   });
 }
+async function tryVoices(text,key,ids){
+  for(const id of ids){
+    const t=await elTTS(text,key,id);
+    if(t.ok){
+      LS.set('jarvis_el_voice',id);
+      const d=EL_DEFAULTS.find(x=>x[0]===id);
+      log('s','Voz ElevenLabs em uso: '+(d?d[1]:id)+'.');
+      return t;
+    }
+  }
+  return null;
+}
 async function playEL(text,key){
-  let vid=LS.get('jarvis_el_voice','')||EL.voice||await autoVoice(key);
+  let vid=LS.get('jarvis_el_voice','')||EL.voice||await autoVoice(key).catch(()=>EL_DEFAULTS[0][0]);
   let r=await elTTS(text,key,vid);
   if(!r.ok){
     const e=await elError(r);
-    // Voice ID inválido para esta conta → escolhe uma voz da conta e tenta de novo (uma vez)
-    if(e.status!==404&&e.code!=='voice_not_found')throw e;
-    try{vid=await autoVoice(key);r=await elTTS(text,key,vid)}
-    catch(err){
-      // Sem permissão "Voices: Read": testa as vozes padrão uma a uma
-      r=null;
-      for(const [id,name] of EL_DEFAULTS){
-        const t=await elTTS(text,key,id);
-        if(t.ok){r=t;LS.set('jarvis_el_voice',id);log('s','Voz ElevenLabs selecionada: '+name+'.');break}
-      }
-      if(!r)throw err;
-    }
-    if(!r.ok)throw await elError(r);
+    const notFound=e.status===404||e.code==='voice_not_found';
+    const paidOnly=/library voice|upgrade|subscription|paid/i.test(e.message);
+    if(!notFound&&!paidOnly)throw e;
+    if(paidOnly)log('e','ElevenLabs: esta voz exige plano pago ou créditos. Usando uma voz gratuita.');
+    // 1) voz da conta (se a chave puder listar) · 2) última que funcionou · 3) vozes padrão gratuitas
+    let first=null;
+    if(notFound)first=await autoVoice(key).catch(()=>null);
+    const ids=[first,LS.get('jarvis_el_ok',''),...EL_DEFAULTS.map(x=>x[0])].filter((id,i,a)=>id&&id!==vid&&a.indexOf(id)===i);
+    r=await tryVoices(text,key,ids);
+    if(!r)throw e;
   }
+  LS.set('jarvis_el_ok',LS.get('jarvis_el_voice','')||vid); // memoriza a última voz que funcionou
   const url=URL.createObjectURL(await r.blob());
   const a=new Audio(url); elAudio=a;
   try{

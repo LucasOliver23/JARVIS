@@ -217,12 +217,53 @@ async function readInbox({ host = 'imap.gmail.com', user, pass, limit = 20, days
   } finally { s.close(); }
 }
 
+/* ---------------- Tavily (pesquisa web) ---------------- */
+function tavily(query, key, max) {
+  return new Promise((resolve, reject) => {
+    const body = JSON.stringify({ query, api_key: key, max_results: max, search_depth: 'basic', include_answer: true });
+    const req = https.request('https://api.tavily.com/search', {
+      method: 'POST', timeout: 20000,
+      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body), Authorization: 'Bearer ' + key },
+    }, (r) => {
+      let d = '';
+      r.setEncoding('utf8');
+      r.on('data', (c) => { d += c; if (d.length > 2e6) req.destroy(new Error('Resposta grande demais')); });
+      r.on('end', () => {
+        let j;
+        try { j = JSON.parse(d); } catch { return reject(Object.assign(new Error('Tavily: resposta inválida'), { code: 502 })); }
+        if (r.statusCode !== 200) {
+          const det = j.detail && (j.detail.error || j.detail);
+          return reject(Object.assign(new Error('Tavily ' + r.statusCode + ': ' + (typeof det === 'string' ? det : j.error || 'erro')), { code: r.statusCode === 401 ? 401 : 502 }));
+        }
+        resolve({
+          answer: j.answer || '',
+          results: (j.results || []).slice(0, max).map((x) => ({ title: x.title, url: x.url, content: String(x.content || '').slice(0, 600) })),
+        });
+      });
+    });
+    req.on('timeout', () => req.destroy(new Error('Tavily timeout')));
+    req.on('error', reject);
+    req.end(body);
+  });
+}
+
+function readJSON(req, res, handler) {
+  let body = '';
+  req.on('data', (c) => { body += c; if (body.length > MAX_BODY) req.destroy(); });
+  req.on('end', async () => {
+    let p;
+    try { p = JSON.parse(body || '{}'); } catch { return send(res, 400, { error: 'JSON inválido' }); }
+    try { send(res, 200, await handler(p)); }
+    catch (e) { send(res, e.code || 502, { error: e.message }); }
+  });
+}
+
 /* ---------------- servidor ---------------- */
 http.createServer((req, res) => {
   const u = new URL(req.url, 'http://' + HOST);
   if (req.method === 'OPTIONS') { res.writeHead(204, CORS); return res.end(); }
 
-  if (req.method === 'GET' && u.pathname === '/health') return send(res, 200, { ok: true, v: '1.0' });
+  if (req.method === 'GET' && u.pathname === '/health') return send(res, 200, { ok: true, v: '1.1', search: true });
 
   if (req.method === 'GET' && u.pathname === '/proxy') {
     return fetchAllowed(u.searchParams.get('url') || '')
@@ -230,16 +271,15 @@ http.createServer((req, res) => {
       .catch((e) => send(res, 400, { error: e.message }));
   }
 
-  if (req.method === 'POST' && u.pathname === '/emails') {
-    let body = '';
-    req.on('data', (c) => { body += c; if (body.length > MAX_BODY) req.destroy(); });
-    req.on('end', async () => {
-      let p;
-      try { p = JSON.parse(body || '{}'); } catch { return send(res, 400, { error: 'JSON inválido' }); }
-      try { send(res, 200, await readInbox(p)); }
-      catch (e) { send(res, e.code || 502, { error: e.message }); }
+  if (req.method === 'POST' && u.pathname === '/emails') return readJSON(req, res, readInbox);
+
+  if (req.method === 'POST' && u.pathname === '/search') {
+    return readJSON(req, res, ({ query, api_key, max_results }) => {
+      query = String(query || '').trim().slice(0, 400);
+      if (!query) throw Object.assign(new Error('query vazia'), { code: 400 });
+      if (!api_key) throw Object.assign(new Error('Chave Tavily ausente'), { code: 400 });
+      return tavily(query, String(api_key).trim(), Math.min(Math.max(Number(max_results) || 5, 1), 8));
     });
-    return;
   }
   send(res, 404, { error: 'Rota não encontrada' });
 }).listen(PORT, HOST, () => console.log(`Jarvis · Antena online em http://${HOST}:${PORT}  (Ctrl+C para sair)`));

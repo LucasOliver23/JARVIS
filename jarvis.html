@@ -204,6 +204,14 @@ form button{font:inherit;color:var(--c);background:transparent;border:0;border-l
     <label>TOM <span id="kPitchV"></span></label>
     <input id="kPitch" type="range" min="0.5" max="1.5" step="0.05">
     <button class="btn" id="kTest" type="button">▶ TESTAR VOZ</button>
+    <h4>VOZ HIPER-REALISTA (ELEVENLABS)</h4>
+    <label>CHAVE DE API ELEVENLABS (vazio = voz do navegador)</label>
+    <input id="xKey" type="password" placeholder="sk_..." autocomplete="off">
+    <label>VOICE ID</label>
+    <input id="xVoice" placeholder="pNInz6obpgDQGcFmaJcg">
+    <h4>PESQUISA WEB (TAVILY)</h4>
+    <label>CHAVE DE API TAVILY (vazio = sem pesquisa)</label>
+    <input id="xTavily" type="password" placeholder="tvly-..." autocomplete="off">
     <h4>INTEGRAÇÕES</h4>
     <label>SERVIDOR LOCAL (server.js)</label>
     <input id="iSrv" placeholder="http://127.0.0.1:4242">
@@ -436,33 +444,84 @@ function extractMemory(text){
   return text.replace(SAVE_RE,'').replace(/\s{2,}/g,' ').trim();
 }
 
+/* ---------- TOOL CALLING: pesquisa web (Tavily via server.js) ---------- */
+const TOOLS=[{
+  name:'web_search',
+  description:'Pesquisa na internet em tempo real para obter informações atualizadas.',
+  input_schema:{type:'object',properties:{query:{type:'string',description:'O termo a ser pesquisado'}},required:['query']}
+}];
+const SEARCH_RULE=`\n\nPESQUISA WEB: você tem a ferramenta web_search. Use-a para fatos atuais ou verificáveis (notícias, preços, cotações, clima, placares, lançamentos, pessoas, qualquer coisa após seu treinamento). Faça no máximo 2 pesquisas por pergunta. Na resposta falada, cite a fonte de forma natural e curta (ex.: "segundo o G1"). Nunca leia URLs.`;
+const MAX_TOOL_STEPS=4;
+
+async function callClaude(body){
+  const res=await fetch(CONFIG.api,{method:'POST',headers:apiHeaders(LS.get('jarvis_key','')),body:JSON.stringify(body)});
+  const data=await res.json().catch(()=>({}));
+  if(!res.ok)throw new Error((data.error&&data.error.message)||('HTTP '+res.status));
+  return data;
+}
+
+async function runTool(name,input){
+  if(name!=='web_search')throw new Error('Ferramenta desconhecida: '+name);
+  const query=String((input&&input.query)||'').trim();
+  log('s','🔎 Pesquisando na web: '+query);
+  const srv=(LS.get('jarvis_srv','')||'http://127.0.0.1:4242').replace(/\/+$/,'');
+  let r;
+  try{r=await fetch(srv+'/search',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({query,api_key:LS.get('jarvis_tavily',''),max_results:5})})}
+  catch(e){throw new Error('Antena offline: rode node server.js para habilitar a pesquisa.')}
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(d.error||('HTTP '+r.status));
+  // Formato compacto = menos tokens na segunda chamada
+  return (d.answer?'RESUMO: '+d.answer+'\n\n':'')+(d.results||[]).map((x,i)=>`[${i+1}] ${x.title} (${x.url})\n${x.content}`).join('\n\n')||'Nenhum resultado.';
+}
+
 async function ask(userText){
   const key=LS.get('jarvis_key','');
   if(!key){log('e','API key não configurada.');openModal();await speak('Preciso da sua chave de API, '+CONFIG.tratamento+'.');return}
   thinking=true; setState('thinking');
-  history.push({role:'user',content:userText});
+  const search=!!LS.get('jarvis_tavily','');
+  // Mensagens do turno atual (inclui tool_use/tool_result); o histórico persistente guarda só texto
+  const turn=[{role:'user',content:userText}];
+  let announced=false;
   try{
-    const res=await fetch(CONFIG.api,{
-      method:'POST',
-      headers:apiHeaders(key),
-      body:JSON.stringify({
+    let raw='';
+    for(let step=0;step<MAX_TOOL_STEPS;step++){
+      const body={
         model:LS.get('jarvis_model',CONFIG.modelo),
         max_tokens:CONFIG.maxTokens,
-        system:buildSystem(),
-        messages:history.slice(-CONFIG.maxHist)
-      })
-    });
-    const data=await res.json().catch(()=>({}));
-    if(!res.ok)throw new Error((data.error&&data.error.message)||('HTTP '+res.status));
-    const raw=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n').trim();
+        system:buildSystem()+(search?SEARCH_RULE:''),
+        messages:history.slice(-CONFIG.maxHist).concat(turn)
+      };
+      if(search){
+        body.tools=TOOLS;
+        if(step===MAX_TOOL_STEPS-1)body.tool_choice={type:'none'}; // última volta: força resposta final
+      }
+      const data=await callClaude(body);
+      const blocks=data.content||[];
+      const uses=blocks.filter(b=>b.type==='tool_use');
+      if(data.stop_reason!=='tool_use'||!uses.length){
+        raw=blocks.filter(b=>b.type==='text').map(b=>b.text).join('\n').trim();
+        break;
+      }
+      // 1) devolve o turno do assistente COMPLETO (texto + tool_use com seus ids)
+      turn.push({role:'assistant',content:blocks});
+      // 2) executa as ferramentas; o aviso falado roda em paralelo com a pesquisa
+      const speaking=!announced&&(announced=true)?speak('Pesquisando, '+CONFIG.tratamento+'.'):Promise.resolve();
+      const results=await Promise.all(uses.map(async u=>{
+        try{return {type:'tool_result',tool_use_id:u.id,content:await runTool(u.name,u.input)}}
+        catch(e){log('e',e.message);return {type:'tool_result',tool_use_id:u.id,content:'Erro: '+e.message,is_error:true}}
+      }));
+      await speaking;
+      thinking=true; setState('thinking');
+      // 3) tool_result vai numa mensagem role:user, um bloco por tool_use_id
+      turn.push({role:'user',content:results});
+    }
     const clean=extractMemory(raw)||'Anotado, '+CONFIG.tratamento+'.';
-    history.push({role:'assistant',content:clean});
+    history.push({role:'user',content:userText},{role:'assistant',content:clean});
     if(history.length>CONFIG.maxHist)history=history.slice(-CONFIG.maxHist);
     thinking=false;
     log('a',clean);
     await speak(clean);
   }catch(err){
-    history.pop(); // mantém alternância user/assistant
     thinking=false;
     log('e',err.message);
     await speak('Falha na comunicação com o servidor, '+CONFIG.tratamento+'.');
@@ -971,7 +1030,7 @@ const ROUTES=[
   [/\b(bom dia|briefing|resumo do dia|morning digest|digest)\b/,cmdDigest],
   [/\b(minha agenda|meus compromissos|agenda (de|da|pra|para) (hoje|amanha|semana)|o que (eu )?tenho (hoje|amanha|na agenda)|proximos compromissos|atualiza(r)? (a )?agenda)\b/,cmdAgenda],
   [/\b(meus emails?|caixa de entrada|novos emails?|tenho (algum |novos? )?emails?|atualiza(r)? (os )?emails?)\b/,cmdMail],
-  [/\b(noticias|manchetes|radar)\b/,cmdNews]
+  [/^(?!.*\b(sobre|pesquis|busc|procur)).*\b(noticias|manchetes|radar)\b/,cmdNews]
 ];
 async function runLocal(fn,n){
   thinking=true;setState('thinking');
@@ -1042,6 +1101,79 @@ $('btnAct').addEventListener('click',()=>setTimeout(async()=>{
   if(c.mail.user&&c.mail.pass)loadMail().catch(e=>log('e',e.message));
 },2500));
 setInterval(antenna,60000);
+</script>
+<script>
+'use strict';
+/* =====================================================================
+   FASE 3 · VOZ HIPER-REALISTA (ElevenLabs) — envelopa speak() do core
+   ===================================================================== */
+const EL={voice:'pNInz6obpgDQGcFmaJcg',model:'eleven_multilingual_v2',maxChars:2500};
+let elAudio=null, elStop=null;
+
+function stopEL(){if(elAudio){try{elAudio.pause()}catch(e){}}if(elStop)elStop()}
+
+async function playEL(text,key){
+  const vid=LS.get('jarvis_el_voice','')||EL.voice;
+  const r=await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(vid)}/stream`,{
+    method:'POST',
+    headers:{'xi-api-key':key,'content-type':'application/json',accept:'audio/mpeg'},
+    body:JSON.stringify({text:text.slice(0,EL.maxChars),model_id:EL.model})
+  });
+  if(!r.ok){
+    let m='HTTP '+r.status;
+    try{const j=await r.json();m=(j.detail&&(j.detail.message||j.detail.status))||m}catch(e){}
+    throw new Error(m);
+  }
+  const url=URL.createObjectURL(await r.blob());
+  const a=new Audio(url); elAudio=a;
+  try{
+    await new Promise((resolve,reject)=>{
+      const guard=setTimeout(resolve,text.length*120+20000); // rede de segurança se onended não disparar
+      elStop=()=>{clearTimeout(guard);resolve()};
+      a.onended=()=>{clearTimeout(guard);resolve()};
+      a.onerror=()=>{clearTimeout(guard);reject(new Error('falha ao tocar o áudio'))};
+      a.play().catch(e=>{clearTimeout(guard);reject(e)});
+    });
+  }finally{URL.revokeObjectURL(url);elAudio=null;elStop=null}
+}
+
+const _speakNative=speak;
+speak=async text=>{
+  const key=LS.get('jarvis_el_key','');
+  if(!key||!text)return _speakNative(text);
+  // busy=true: microfone fica desligado durante TODO o áudio da ElevenLabs
+  busy=true; stopSTT(); setState('speaking');
+  if('speechSynthesis' in window)speechSynthesis.cancel();
+  try{await playEL(text,key)}
+  catch(e){log('e','ElevenLabs: '+e.message+' — usando voz do navegador.');return _speakNative(text)} // nativo gerencia busy
+  await new Promise(r=>setTimeout(r,400)); // eco do alto-falante dissipa antes de reabrir o mic
+  busy=false; restState(); startSTT();
+};
+
+// Interromper: enviar texto corta a fala realista também
+$('form').addEventListener('submit',stopEL,true);
+
+/* ---------- configurações ---------- */
+const _openF2=openModal;
+openModal=()=>{
+  _openF2();
+  $('xKey').value=LS.get('jarvis_el_key','');
+  $('xVoice').value=LS.get('jarvis_el_voice','')||EL.voice;
+  $('xTavily').value=LS.get('jarvis_tavily','');
+};
+$('cfg').onclick=openModal;
+$('kSave').addEventListener('click',()=>{
+  LS.set('jarvis_el_key',$('xKey').value.replace(/\s/g,''));
+  LS.set('jarvis_el_voice',$('xVoice').value.trim()||EL.voice);
+  LS.set('jarvis_tavily',$('xTavily').value.replace(/\s/g,''));
+});
+// Botão "testar voz" passa pela voz ativa (ElevenLabs ou nativa)
+$('kTest').onclick=()=>{
+  if(typeof applyVoice==='function')applyVoice();
+  LS.set('jarvis_el_key',$('xKey').value.replace(/\s/g,''));
+  LS.set('jarvis_el_voice',$('xVoice').value.trim()||EL.voice);
+  speak(`Às suas ordens, ${CONFIG.tratamento}. Todos os sistemas operando normalmente.`);
+};
 </script>
 </body>
 </html>

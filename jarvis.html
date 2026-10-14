@@ -438,7 +438,7 @@ function buildSystem(){
 const DEFAULT_SRV=location.protocol==='https:'?location.origin+'/api':'http://127.0.0.1:4242';
 // Remove qualquer caractere invisível/fora do padrão (comum ao colar no celular)
 const cleanKey=k=>String(k||'').replace(/^["']|["']$/g,'').replace(/[^\x21-\x7E]/g,'');
-function keyHint(k){k=cleanKey(k);if(!k)return 'vazia';return `começa com "${k.slice(0,10)}…", ${k.length} caracteres`+(/^sk-ant-api/.test(k)?'':' — NÃO é uma chave de API; ela deve começar com "sk-ant-api03-"')}
+function keyHint(k){k=cleanKey(k);if(!k)return 'vazia';return `começa com "${k.slice(0,10)}…", ${k.length} caracteres`+(/^sk-ant-usr/.test(k)?' — chave pessoal: crie outra escolhendo o Workspace "Default" no Create Key':'')}
 const apiHeaders=key=>({
   'content-type':'application/json',
   'x-api-key':cleanKey(key),
@@ -646,7 +646,8 @@ $('cfg').onclick=openModal;
 $('kClose').onclick=()=>$('modal').classList.add('gone');
 $('kSave').onclick=()=>{
   const key=cleanKey($('kKey').value.replace(/[\s"'`]/g,''));
-  if(key&&!/^sk-ant-api/.test(key)){log('e',`Chave inválida: começa com "${key.slice(0,10)}…". A chave de API da Anthropic começa com "sk-ant-api03-". Crie em console.anthropic.com → API Keys → Create Key.`);return}
+  // Aceita sk-ant-api… e as chaves pessoais sk-ant-usr…; rejeita tokens OAuth (sk-ant-oat…) e outros formatos
+  if(key&&(!/^sk-ant-/.test(key)||/^sk-ant-oat/.test(key))){log('e',`Chave inválida: começa com "${key.slice(0,10)}…". Use uma chave criada em console.anthropic.com → API Keys → Create Key.`);return}
   LS.set('jarvis_key',key);
   LS.set('jarvis_model',$('kModel').value.trim()||CONFIG.modelo);
   if('speechSynthesis' in window)applyVoice();

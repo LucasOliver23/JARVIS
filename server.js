@@ -254,11 +254,13 @@ function readJSON(req, res, handler) {
     let p;
     try { p = JSON.parse(body || '{}'); } catch { return send(res, 400, { error: 'JSON inválido' }); }
     try { send(res, 200, await handler(p)); }
-    catch (e) { send(res, e.code || 502, { error: e.message }); }
+    catch (e) { send(res, Number.isInteger(e.code) ? e.code : 502, { error: e.message }); } // e.code pode ser 'ENOTFOUND' etc.
   });
 }
 
 /* ---------------- servidor ---------------- */
+process.on('uncaughtException', (e) => console.error('[Antena] erro:', e.message)); // nunca derruba o servidor
+
 http.createServer((req, res) => {
   const u = new URL(req.url, 'http://' + HOST);
   if (req.method === 'OPTIONS') { res.writeHead(204, CORS); return res.end(); }

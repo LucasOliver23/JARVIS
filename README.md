@@ -33,7 +33,7 @@ Morning Digest (1 chamada) usam a API.
 
 ## Fase 3 · Voz hiper-realista + Pesquisa web
 
-- **ElevenLabs** (⚙ → Voz hiper-realista): cole a chave (elevenlabs.io → Profile → API Keys). Voice ID padrão `pNInz6obpgDQGcFmaJcg` (Adam).
+- **ElevenLabs** (⚙ → Voz hiper-realista): cole a chave (elevenlabs.io → Profile → API Keys). Voz: escolhida automaticamente entre as vozes da sua conta (masculina, de preferência britânica), ou escolha em "Carregar minhas vozes".
   Sem chave, o Jarvis usa a voz do navegador. O microfone só reabre quando o áudio termina.
 - **Tavily** (⚙ → Pesquisa web): cole a chave `tvly-...` (app.tavily.com). Exige `node server.js` rodando (rota `/search`).
   O Claude decide quando pesquisar (tool `web_search`), recebe o resultado e responde citando a fonte.

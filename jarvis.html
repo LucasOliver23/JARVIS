@@ -201,6 +201,27 @@ body.thinking .r0{animation-duration:4s}
 form{gap:0}
 #ptt{font-size:18px;padding:0 16px;border-left:1px solid var(--line)}
 #ptt.rec{background:rgba(255,77,109,.2);color:#fff;animation:blink 1s infinite}
+/* diário de trades */
+.tabs button{letter-spacing:.14em}
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px;margin-bottom:10px}
+.kpi{border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:rgba(0,212,255,.05)}
+.kpi i{font-style:normal;font-size:9px;letter-spacing:.2em;color:var(--mut);display:block}
+.kpi b{font-weight:normal;font-size:18px;color:#e8fbff}
+.pos{color:#06d6a0!important}.neg{color:#ff6b6b!important}
+#trCurve{width:100%;height:90px;display:block;margin:4px 0 12px}
+#trAdd{border:1px dashed var(--line);border-radius:8px;padding:8px 10px;margin-bottom:12px}
+#trAdd summary{cursor:pointer;color:var(--c);letter-spacing:.2em;font-size:11px}
+.trf{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px;border:0}
+.trf label{display:flex;flex-direction:column;gap:3px;font-size:9px;letter-spacing:.15em;color:var(--mut)}
+.trf input,.trf select{font:inherit;font-size:12px;background:#06121e;border:1px solid var(--line);color:var(--tx);padding:6px;border-radius:4px;min-width:0}
+.trf .w2{grid-column:span 2}
+.trt{width:100%;border-collapse:collapse;font-size:11px;white-space:nowrap}
+.trt th{color:var(--mut);font-weight:normal;text-align:left;letter-spacing:.12em;font-size:9px;border-bottom:1px solid var(--line);padding:4px 6px}
+.trt td{border-bottom:1px solid rgba(0,212,255,.08);padding:5px 6px}
+.trt button{font:inherit;font-size:10px;background:none;border:0;color:var(--mut);cursor:pointer}
+.trwrap{overflow-x:auto;margin-bottom:12px}
+.grp{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:600px){.trf{grid-template-columns:1fr 1fr}.grp{grid-template-columns:1fr}}
 @media(max-width:1200px){
   #main{grid-template-columns:minmax(320px,1fr) 1.2fr;grid-template-areas:"head head" "left mods" "hud hud";grid-template-rows:auto 1fr auto}
   #hud{flex-direction:row;overflow-x:auto;overflow-y:hidden}
@@ -249,6 +270,7 @@ form{gap:0}
     <div class="card" id="cMl"><i><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>E-MAILS · AÇÃO</i><b>—</b><small>configure o Gmail em ⚙</small></div>
     <div class="card" id="cTm"><i><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7l4 3-1.5 5h-5L8 10z"/></svg>MEU TIME</i><b class="sm">—</b><small>escolha o time em ⚙</small></div>
     <div class="card" id="cNw"><i><svg viewBox="0 0 24 24"><path d="M4 5h13v14H5a1 1 0 01-1-1zM17 9h3v9a1 1 0 01-1 1h-2M7 9h7M7 13h7M7 16h4"/></svg>MANCHETE</i><b class="sm">—</b><small></small></div>
+    <div class="card" id="cTr"><i><svg viewBox="0 0 24 24"><path d="M3 17l5-5 4 4 8-8M14 8h6v6"/></svg>TRADES · MÊS</i><b>—</b><small>registre por voz ou na aba TRADES</small></div>
     <button class="card cta" id="cBrief" type="button">▶ BRIEFING DO DIA<small>tecla B · ou diga "acorda"</small></button>
   </section>
   <section id="left">
@@ -266,7 +288,7 @@ form{gap:0}
   <section id="graphwrap" class="panel">
     <span class="tag">MÓDULOS</span>
     <nav class="tabs" id="tabs">
-      <button data-v="graph" class="on">GRAFO</button><button data-v="agenda">AGENDA</button><button data-v="mail">E-MAILS</button><button data-v="news">RADAR</button><button data-v="digest">DIGEST</button>
+      <button data-v="graph" class="on">GRAFO</button><button data-v="agenda">AGENDA</button><button data-v="mail">E-MAILS</button><button data-v="news">RADAR</button><button data-v="digest">DIGEST</button><button data-v="trades">TRADES</button>
     </nav>
     <div id="views">
       <div class="view on" id="v-graph">
@@ -276,6 +298,26 @@ form{gap:0}
       <div class="view" id="v-agenda"><div class="vbar"><span id="agMeta">TIMELINE</span><button class="btn" data-refresh="agenda">↻</button></div><div class="vbody" id="agBody"><div class="empty">Configure os links iCal em ⚙.</div></div></div>
       <div class="view" id="v-mail"><div class="vbar"><span id="mlMeta">TRIAGEM</span><button class="btn" data-refresh="mail">↻</button></div><div class="vbody" id="mlBody"><div class="empty">Configure o e-mail e a senha de app em ⚙.</div></div></div>
       <div class="view" id="v-news"><div class="vbar"><span id="nwMeta">RADAR RSS</span><button class="btn" data-refresh="news">↻</button></div><div class="vbody" id="nwBody"><div class="empty">Clique em ↻ ou diga "notícias".</div></div></div>
+      <div class="view" id="v-trades"><div class="vbar"><span id="trMeta">DIÁRIO DE OPERAÇÕES</span><span><button class="btn" id="trImp" title="Importar relatório CSV do Profit">⤒ CSV PROFIT</button> <button class="btn" id="trExp" title="Exportar para Excel">⤓ EXCEL</button></span></div>
+        <div class="vbody" id="trBody">
+          <div id="trStats"></div>
+          <details id="trAdd"><summary>+ REGISTRAR OPERAÇÃO</summary>
+            <form id="trForm" class="trf">
+              <label>DATA<input name="data" type="date" required></label>
+              <label>HORA<input name="hora" type="time" required></label>
+              <label>ATIVO<select name="ativo"><option>WIN</option><option>WDO</option></select></label>
+              <label>LADO<select name="lado"><option value="C">COMPRA</option><option value="V">VENDA</option></select></label>
+              <label>CONTRATOS<input name="contratos" type="number" min="1" step="1" value="1" required></label>
+              <label>ENTRADA<input name="entrada" type="number" step="any" required></label>
+              <label>SAÍDA<input name="saida" type="number" step="any" required></label>
+              <label>STOP (opc.)<input name="stop" type="number" step="any"></label>
+              <label class="w2">SETUP<input name="setup" list="trSetups" placeholder="ex.: rompimento, pullback"></label>
+              <label class="w2">NOTA<input name="nota" placeholder="o que você sentiu / aprendeu"></label>
+              <button class="btn w2">SALVAR OPERAÇÃO</button>
+            </form><datalist id="trSetups"></datalist>
+          </details>
+          <div id="trList"></div>
+        </div><input id="trFile" type="file" accept=".csv,.txt,text/csv" hidden></div>
       <div class="view" id="v-digest"><div class="vbar"><span id="dgMeta">MORNING DIGEST</span><button class="btn" data-refresh="digest">▶ GERAR</button></div><div class="vbody" id="dgBody"><div class="empty">Diga "bom dia" ou clique em ▶ GERAR.</div></div></div>
     </div>
   </section>
@@ -604,10 +646,10 @@ async function ask(userText){
         system:buildSystem()+(search?SEARCH_RULE:''),
         messages:history.slice(-CONFIG.maxHist).concat(turn)
       };
-      if(search){
-        body.tools=TOOLS;
+      {const tl=activeTools();if(tl.length){
+        body.tools=tl;
         if(step===MAX_TOOL_STEPS-1)body.tool_choice={type:'none'}; // última volta: força resposta final
-      }
+      }}
       const data=await callClaude(body);
       const blocks=data.content||[];
       const uses=blocks.filter(b=>b.type==='tool_use');
@@ -618,7 +660,7 @@ async function ask(userText){
       // 1) devolve o turno do assistente COMPLETO (texto + tool_use com seus ids)
       turn.push({role:'assistant',content:blocks});
       // 2) executa as ferramentas; o aviso falado roda em paralelo com a pesquisa
-      const speaking=!announced&&(announced=true)?speak('Pesquisando, '+CONFIG.tratamento+'.'):Promise.resolve();
+      const speaking=uses.some(u=>u.name==='web_search')&&!announced&&(announced=true)?speak('Pesquisando, '+CONFIG.tratamento+'.'):Promise.resolve();
       const results=await Promise.all(uses.map(async u=>{
         try{return {type:'tool_result',tool_use_id:u.id,content:await runTool(u.name,u.input)}}
         catch(e){log('e',e.message);return {type:'tool_result',tool_use_id:u.id,content:'Erro: '+e.message,is_error:true}}
@@ -1145,7 +1187,8 @@ const ROUTES=[
   [/\b(bom dia|acorda|briefing|resumo do dia|morning digest|digest)\b/,cmdDigest],
   [/\b(minha agenda|meus compromissos|agenda (de|da|pra|para) (hoje|amanha|semana)|o que (eu )?tenho (hoje|amanha|na agenda)|proximos compromissos|atualiza(r)? (a )?agenda)\b/,cmdAgenda],
   [/\b(meus emails?|caixa de entrada|novos emails?|tenho (algum |novos? )?emails?|atualiza(r)? (os )?emails?)\b/,cmdMail],
-  [/^(?!.*\b(sobre|pesquis|busc|procur)).*\b(noticias|manchetes|radar)\b/,cmdNews]
+  [/^(?!.*\b(sobre|pesquis|busc|procur)).*\b(noticias|manchetes|radar)\b/,cmdNews],
+  [/\b(meus trades|minhas operacoes|diario de (trades?|operacoes)|resumo (dos|das) (trades|operacoes)|como estou no (mini|trade|mercado))\b/,(...a)=>cmdTrades(...a)]
 ];
 async function runLocal(fn,n){
   thinking=true;setState('thinking');
@@ -1553,14 +1596,14 @@ ask=async userText=>{
       const body={model,max_tokens:CONFIG.maxTokens,system:buildSystem()+(search?SEARCH_RULE:''),messages:history.slice(-CONFIG.maxHist).concat(turn)};
       // Voz pede velocidade: menos raciocínio antes da 1ª palavra nos modelos atuais
       if(/^claude-(opus|sonnet|haiku|fable)-5/.test(model))body.output_config={effort:'low'};
-      if(search){body.tools=TOOLS;if(step===MAX_TOOL_STEPS-1)body.tool_choice={type:'none'}}
+      {const tl=activeTools();if(tl.length){body.tools=tl;if(step===MAX_TOOL_STEPS-1)body.tool_choice={type:'none'}}}
       let stepText='';
       const data=await streamClaude(body,t=>{stepText+=t;split.feed(t)});
       split.flush();
       const uses=data.content.filter(b=>b.type==='tool_use');
       if(data.stop_reason!=='tool_use'||!uses.length){raw=stepText.trim();break}
       turn.push({role:'assistant',content:data.content}); // turno completo, com ids dos tool_use
-      if(!stepText.trim()&&!announced){announced=true;spk.push('Pesquisando, '+CONFIG.tratamento+'.')}
+      if(!stepText.trim()&&!announced&&uses.some(u=>u.name==='web_search')){announced=true;spk.push('Pesquisando, '+CONFIG.tratamento+'.')}
       const results=await Promise.all(uses.map(async u=>{
         try{return {type:'tool_result',tool_use_id:u.id,content:await runTool(u.name,u.input)}}
         catch(e){log('e',e.message);return {type:'tool_result',tool_use_id:u.id,content:'Erro: '+e.message,is_error:true}}
@@ -1788,6 +1831,202 @@ async function refreshCards(){
 }
 $('btnAct').addEventListener('click',()=>setTimeout(refreshCards,1200));
 setInterval(()=>{if($('act').classList.contains('gone'))refreshCards()},30*60000);
+</script>
+<script>
+'use strict';
+/* =====================================================================
+   DIÁRIO DE OPERAÇÕES (mini índice / mini dólar)
+   Registro por voz (tool registrar_trade), formulário, CSV do Profit, estatísticas.
+   ===================================================================== */
+const PONTO={WIN:0.2,WDO:10}; // R$ por ponto por contrato
+let trades=LS.get('jarvis_trades',[]);
+const brl=v=>(v<0?'-':'')+'R$ '+Math.abs(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const pct=v=>v==null?'—':(v*100).toFixed(0)+'%';
+const num=v=>v==null||!isFinite(v)?'—':v.toLocaleString('pt-BR',{maximumFractionDigits:2});
+const sgn=v=>v>0?'pos':v<0?'neg':'';
+const falaRS=v=>(v<0?'menos ':'')+Math.abs(v).toLocaleString('pt-BR',{maximumFractionDigits:2})+' reais';
+
+function makeTrade(o){
+  const ativo=String(o.ativo||'WIN').toUpperCase().startsWith('WDO')?'WDO':'WIN';
+  const lado=/^v/i.test(String(o.lado||''))?'V':'C';
+  const contratos=Math.max(1,Math.round(+o.contratos||1));
+  const entrada=+o.entrada, saida=+o.saida, stop=o.stop!=null&&o.stop!==''?+o.stop:null;
+  if(!isFinite(entrada)||!isFinite(saida))throw new Error('preço de entrada e saída são obrigatórios');
+  const pts=o.pts!=null&&isFinite(+o.pts)?+o.pts:(saida-entrada)*(lado==='C'?1:-1); // dado do Profit tem prioridade
+  const rs=o.rs!=null&&isFinite(+o.rs)?+o.rs:pts*PONTO[ativo]*contratos;
+  const risco=stop!=null?Math.abs(entrada-stop):null;
+  const now=new Date();
+  return {id:'t'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),
+    data:o.data||now.toISOString().slice(0,10),hora:(o.hora||now.toTimeString().slice(0,5)).slice(0,5),
+    ativo,lado,contratos,entrada,saida,stop,pts:+pts.toFixed(2),rs:+rs.toFixed(2),
+    r:risco?+(pts/risco).toFixed(2):null,setup:String(o.setup||'').trim().toLowerCase(),nota:String(o.nota||'').trim()};
+}
+function saveTrades(){trades.sort((a,b)=>(a.data+a.hora).localeCompare(b.data+b.hora));LS.set('jarvis_trades',trades);renderTrades()}
+function addTrade(o){const t=makeTrade(o);trades.push(t);saveTrades();return t}
+
+/* ---------- estatísticas ---------- */
+function trStats(list){
+  if(!list.length)return null;
+  const r=list.map(t=>t.rs),sum=a=>a.reduce((s,x)=>s+x,0);
+  const wins=r.filter(x=>x>0),losses=r.filter(x=>x<0),gw=sum(wins),gl=-sum(losses);
+  let eq=0,peak=0,dd=0,seq=0,maxSeq=0;const curve=[0];
+  for(const x of r){eq+=x;curve.push(eq);peak=Math.max(peak,eq);dd=Math.max(dd,peak-eq);if(x<0){seq++;maxSeq=Math.max(maxSeq,seq)}else seq=0}
+  const group=key=>{const m={};list.forEach(t=>{const k=key(t)||'(sem setup)';(m[k]=m[k]||{n:0,rs:0,w:0});m[k].n++;m[k].rs+=t.rs;if(t.rs>0)m[k].w++});
+    return Object.entries(m).map(([k,v])=>({k,...v})).sort((a,b)=>b.rs-a.rs)};
+  return {n:list.length,acerto:wins.length/list.length,
+    payoff:wins.length&&losses.length?(gw/wins.length)/(gl/losses.length):null,
+    pf:gl?gw/gl:null,exp:sum(r)/list.length,total:sum(r),pts:sum(list.map(t=>t.pts)),dd,maxSeq,curve,
+    bySetup:group(t=>t.setup),byHour:group(t=>t.hora.slice(0,2)+'h')};
+}
+const monthList=()=>{const m=new Date().toISOString().slice(0,7);return trades.filter(t=>t.data.startsWith(m))};
+
+function curveSVG(c){
+  const W=600,H=90,min=Math.min(...c),max=Math.max(...c),span=max-min||1;
+  const pts=c.map((v,i)=>`${(i/(c.length-1||1)*W).toFixed(1)},${(H-6-(v-min)/span*(H-12)).toFixed(1)}`).join(' ');
+  const z=(H-6-(0-min)/span*(H-12)).toFixed(1),col=c[c.length-1]>=0?'#06d6a0':'#ff6b6b';
+  return `<svg id="trCurve" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><line x1="0" x2="${W}" y1="${z}" y2="${z}" stroke="rgba(0,212,255,.25)" stroke-dasharray="4 4"/><polyline points="${pts}" fill="none" stroke="${col}" stroke-width="2" vector-effect="non-scaling-stroke"/></svg>`;
+}
+function renderTrades(){
+  const st=trStats(trades);
+  $('trMeta').textContent=`DIÁRIO DE OPERAÇÕES · ${trades.length} TRADES`;
+  $('trSetups').innerHTML=[...new Set(trades.map(t=>t.setup).filter(Boolean))].map(x=>`<option value="${esc(x)}">`).join('');
+  if(!st){$('trStats').innerHTML='<div class="empty">Nenhuma operação ainda. Registre abaixo, importe o CSV do Profit ou fale: "comprei 1 WIN a 132.500 e saí a 132.650, setup rompimento".</div>';$('trList').innerHTML='';renderTrCard();return}
+  const K=(l,v,c)=>`<div class="kpi"><i>${l}</i><b class="${c||''}">${v}</b></div>`;
+  $('trStats').innerHTML=`<div class="kpis">${
+    K('RESULTADO',brl(st.total),sgn(st.total))+K('PONTOS',num(st.pts),sgn(st.pts))+K('ACERTO',pct(st.acerto))+
+    K('PAYOFF',num(st.payoff))+K('FATOR DE LUCRO',num(st.pf))+K('EXPECTATIVA/TRADE',brl(st.exp),sgn(st.exp))+
+    K('DRAWDOWN MÁX.',brl(-st.dd),st.dd?'neg':'')+K('PERDAS SEGUIDAS',st.maxSeq)}</div>${curveSVG(st.curve)}`;
+  const G=(title,arr)=>`<div><div class="day">${title}</div><table class="trt"><tr><th></th><th>TRADES</th><th>ACERTO</th><th>RESULTADO</th></tr>${
+    arr.map(g=>`<tr><td>${esc(g.k)}</td><td>${g.n}</td><td>${pct(g.w/g.n)}</td><td class="${sgn(g.rs)}">${brl(g.rs)}</td></tr>`).join('')}</table></div>`;
+  $('trList').innerHTML=`<div class="grp">${G('POR SETUP',st.bySetup)}${G('POR HORÁRIO',st.byHour.sort((a,b)=>a.k.localeCompare(b.k)))}</div>
+    <div class="day">OPERAÇÕES</div><div class="trwrap"><table class="trt"><tr><th>DATA</th><th>HORA</th><th>ATIVO</th><th>LADO</th><th>CT</th><th>ENTRADA</th><th>SAÍDA</th><th>PTS</th><th>R$</th><th>R</th><th>SETUP</th><th>NOTA</th><th></th></tr>${
+    trades.slice().reverse().map(t=>`<tr><td>${t.data.split('-').reverse().join('/')}</td><td>${t.hora}</td><td>${t.ativo}</td><td>${t.lado==='C'?'COMPRA':'VENDA'}</td><td>${t.contratos}</td><td>${num(t.entrada)}</td><td>${num(t.saida)}</td><td class="${sgn(t.pts)}">${num(t.pts)}</td><td class="${sgn(t.rs)}">${brl(t.rs)}</td><td>${t.r==null?'—':num(t.r)}</td><td>${esc(t.setup)}</td><td>${esc(t.nota)}</td><td><button data-del="${t.id}" title="Apagar">✕</button></td></tr>`).join('')}</table></div>`;
+  renderTrCard();
+}
+function renderTrCard(){
+  const m=trStats(monthList());
+  setCard('cTr',m?brl(m.total):'—',m?`${m.n} trades · acerto ${pct(m.acerto)} · fator ${num(m.pf)}`:'registre por voz ou na aba TRADES');
+  const b=$('cTr').querySelector('b');b.className=m?sgn(m.total):'';
+}
+
+/* ---------- formulário / apagar ---------- */
+(()=>{const f=$('trForm');const n=new Date();f.data.value=n.toISOString().slice(0,10);f.hora.value=n.toTimeString().slice(0,5)})();
+$('trForm').onsubmit=e=>{
+  e.preventDefault();
+  const f=e.target;
+  try{
+    const t=addTrade(Object.fromEntries(new FormData(f)));
+    log('s',`Trade salvo: ${t.lado==='C'?'compra':'venda'} ${t.contratos} ${t.ativo} · ${num(t.pts)} pts · ${brl(t.rs)}`);
+    ['entrada','saida','stop','nota'].forEach(k=>f[k].value='');
+  }catch(err){log('e','Trade: '+err.message)}
+};
+$('trList').addEventListener('click',e=>{
+  const id=e.target.dataset&&e.target.dataset.del;if(!id)return;
+  if(!confirm('Apagar esta operação?'))return;
+  trades=trades.filter(t=>t.id!==id);saveTrades();
+});
+
+/* ---------- exportar (abre no Excel: ; e BOM UTF-8) ---------- */
+$('trExp').onclick=()=>{
+  const H=['data','hora','ativo','lado','contratos','entrada','saida','stop','pontos','resultado_rs','r','setup','nota'];
+  const q=v=>v==null?'':/[;"\n]/.test(String(v))?'"'+String(v).replace(/"/g,'""')+'"':String(v).replace('.',',');
+  const rows=trades.map(t=>[t.data,t.hora,t.ativo,t.lado,t.contratos,t.entrada,t.saida,t.stop,t.pts,t.rs,t.r,t.setup,t.nota].map(q).join(';'));
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob(['﻿'+[H.join(';'),...rows].join('\r\n')],{type:'text/csv;charset=utf-8'}));
+  a.download='jarvis_trades.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+};
+
+/* ---------- importar CSV do Profit (mapeamento flexível pelos nomes das colunas) ---------- */
+const brNum=v=>{let s=String(v||'').replace(/[R$\s]/g,'');if(!s)return NaN;if(s.includes(','))s=s.replace(/\./g,'').replace(',','.');return parseFloat(s)};
+function parseCSV(txt){
+  const lines=txt.replace(/^﻿/,'').split(/\r?\n/).filter(l=>l.trim());
+  const hi=lines.findIndex(l=>/ativo|papel|abertura/i.test(l));if(hi<0)throw new Error('cabeçalho não encontrado (procurei "Ativo"/"Abertura")');
+  const d=[';','\t',','].sort((a,b)=>lines[hi].split(b).length-lines[hi].split(a).length)[0];
+  const split=l=>{const out=[];let cur='',q=false;for(const ch of l){if(ch==='"')q=!q;else if(ch===d&&!q){out.push(cur);cur=''}else cur+=ch}out.push(cur);return out.map(x=>x.trim())};
+  const head=split(lines[hi]).map(h=>norm(h));
+  const col=re=>head.findIndex(h=>re.test(h));
+  const C={ativo:col(/^(ativo|papel|simbolo)/),abertura:col(/abertura|^data/),lado:col(/^lado|^c\/v|natureza/),
+    qtd:col(/^qtd|quant/),pc:col(/pre.*compra/),pv:col(/pre.*venda/),pe:col(/pre.*(entrada|abertura)/),ps:col(/pre.*(saida|fechamento)/),
+    rpts:col(/(res.*(pontos|pts|intervalo))|^pontos/),
+    rrs:[/res.*operacao/,/res.*(financ|liquido|r\$)/,/^resultado$/].map(col).find(i=>i>=0)??-1}; // "Res. Intervalo" = pontos; "Res. Operação" = R$
+  if(C.abertura<0||(C.pc<0&&C.pe<0))throw new Error('colunas não reconhecidas. Encontrei: '+head.join(' | '));
+  const out=[],errs=[];
+  for(const l of lines.slice(hi+1)){
+    const c=split(l);if(c.length<3)continue;
+    try{
+      const ab=c[C.abertura]||'',m=/(\d{2})\/(\d{2})\/(\d{4})\D*(\d{2}:\d{2})?/.exec(ab);if(!m)continue;
+      const ladoTxt=C.lado>=0?c[C.lado]:'';const lado=/^v/i.test(ladoTxt)?'V':'C';
+      let entrada,saida;
+      if(C.pc>=0&&C.pv>=0){const pc=brNum(c[C.pc]),pv=brNum(c[C.pv]);entrada=lado==='C'?pc:pv;saida=lado==='C'?pv:pc}
+      else{entrada=brNum(c[C.pe]);saida=brNum(c[C.ps])}
+      const ativo=C.ativo>=0?c[C.ativo]:'WIN';
+      out.push({data:`${m[3]}-${m[2]}-${m[1]}`,hora:m[4]||'00:00',ativo,lado,contratos:C.qtd>=0?Math.abs(brNum(c[C.qtd]))||1:1,entrada,saida,
+        pts:C.rpts>=0&&isFinite(brNum(c[C.rpts]))?brNum(c[C.rpts]):null,
+        rs:C.rrs>=0&&isFinite(brNum(c[C.rrs]))?brNum(c[C.rrs]):null,setup:'importado profit'});
+    }catch(e){errs.push(e.message)}
+  }
+  return {rows:out,errs};
+}
+$('trImp').onclick=()=>$('trFile').click();
+$('trFile').onchange=async()=>{
+  const f=$('trFile').files[0];$('trFile').value='';if(!f)return;
+  try{
+    const buf=await f.arrayBuffer();let txt=new TextDecoder('utf-8').decode(buf);
+    if(txt.includes('�'))txt=new TextDecoder('windows-1252').decode(buf); // Profit costuma exportar em ANSI
+    const {rows}=parseCSV(txt);
+    const key=t=>[t.data,t.hora,t.lado,t.entrada,t.saida].join('|');
+    const have=new Set(trades.map(key));let n=0,skip=0,bad=0;
+    for(const r of rows){try{const t=makeTrade(r);if(have.has(key(t))){skip++;continue}trades.push(t);have.add(key(t));n++}catch(e){bad++}}
+    saveTrades();
+    log('s',`CSV do Profit: ${n} operações importadas · ${skip} já existiam · ${bad} linhas não reconhecidas.`);
+  }catch(e){log('e','Importação do CSV: '+e.message+'. Me mande um exemplo do arquivo (sem dados sensíveis) para eu ajustar.')}
+};
+
+/* ---------- IA: registrar por voz + contexto do diário ---------- */
+const TRADE_TOOL={name:'registrar_trade',
+  description:'Registra no diário uma operação já ENCERRADA no mini índice (WIN) ou mini dólar (WDO). Use quando o usuário relatar uma operação com entrada e saída. Se faltar lado, contratos, entrada ou saída, pergunte antes.',
+  input_schema:{type:'object',properties:{
+    ativo:{type:'string',enum:['WIN','WDO']},lado:{type:'string',enum:['compra','venda']},
+    contratos:{type:'integer',minimum:1},entrada:{type:'number',description:'preço de entrada em pontos, ex. 132500'},
+    saida:{type:'number',description:'preço de saída'},stop:{type:'number',description:'preço do stop, se informado'},
+    setup:{type:'string',description:'nome curto do setup/estratégia'},nota:{type:'string',description:'observação ou emoção relatada'},
+    data:{type:'string',description:'AAAA-MM-DD, se diferente de hoje'},hora:{type:'string',description:'HH:MM da entrada, se informada'}},
+    required:['lado','contratos','entrada','saida']}};
+function activeTools(){return LS.get('jarvis_tavily','')?[...TOOLS,TRADE_TOOL]:[TRADE_TOOL]}
+const _runTool6=runTool;
+runTool=async(name,input)=>{
+  if(name!=='registrar_trade')return _runTool6(name,input);
+  const t=addTrade(input||{});
+  log('s',`📈 Trade registrado: ${t.lado==='C'?'compra':'venda'} ${t.contratos} ${t.ativo} · ${num(t.pts)} pts · ${brl(t.rs)}`);
+  const m=trStats(monthList());
+  return `Salvo. Resultado: ${t.pts} pontos, R$ ${t.rs.toFixed(2)}${t.r!=null?`, ${t.r}R`:''}. Mês: ${m.n} trades, acerto ${pct(m.acerto)}, total R$ ${m.total.toFixed(2)}.`;
+};
+const _build6=buildSystem;
+buildSystem=()=>{
+  let x=_build6();
+  const st=trStats(trades);
+  x+=`\n\nMENTOR DE TRADING: você ajuda ${CONFIG.tratamento} a revisar operações no mini índice/mini dólar com base em DADOS do diário. Seja honesto, priorize gestão de risco e disciplina, aponte padrões (horários, setups, sequências de perda). Nunca prometa lucro nem dê recomendação de compra/venda ao vivo.`;
+  if(st){
+    const best=st.byHour.slice().sort((a,b)=>b.rs-a.rs)[0],worst=st.byHour.slice().sort((a,b)=>a.rs-b.rs)[0];
+    x+=`\nDIÁRIO (todas): ${st.n} trades, acerto ${pct(st.acerto)}, payoff ${num(st.payoff)}, fator ${num(st.pf)}, total R$ ${st.total.toFixed(2)}, drawdown R$ ${st.dd.toFixed(2)}, perdas seguidas máx ${st.maxSeq}. Melhor horário ${best.k} (R$ ${best.rs.toFixed(2)}), pior ${worst.k} (R$ ${worst.rs.toFixed(2)}). Setups: ${st.bySetup.slice(0,5).map(g=>`${g.k} ${g.n}x R$ ${g.rs.toFixed(0)}`).join('; ')}.`;
+  }
+  return x;
+};
+
+/* ---------- comando local "meus trades" (0 tokens) ---------- */
+async function cmdTrades(){
+  showTab('trades');
+  const st=trStats(trades),T=CONFIG.tratamento;
+  if(!st)return `Seu diário ainda está vazio, ${T}. Me conte uma operação, por exemplo: comprei um WIN a 132 mil e 500 e saí a 132 mil e 650.`;
+  const m=trStats(monthList());
+  const best=st.byHour.slice().sort((a,b)=>b.rs-a.rs)[0],worst=st.byHour.slice().sort((a,b)=>a.rs-b.rs)[0];
+  return `${st.n} operações registradas, ${T}. Acerto de ${pct(st.acerto)}, fator de lucro ${num(st.pf)} e resultado de ${falaRS(st.total)}.`+
+    (m?` Neste mês: ${m.n} trades e ${falaRS(m.total)}.`:'')+
+    (st.byHour.length>1?` Seu melhor horário é ${best.k}, e o pior é ${worst.k}.`:'')+
+    (st.maxSeq>=3?` Atenção: você já teve ${st.maxSeq} perdas seguidas; vale definir um limite diário de perda.`:'');
+}
+LIGHT.push(['cTr',/(trade|operac|mini indice|contratos|acerto|fator de lucro)/]);
+renderTrades();
 </script>
 </body>
 </html>

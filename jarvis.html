@@ -142,6 +142,82 @@ form button{font:inherit;color:var(--c);background:transparent;border:0;border-l
   #log{max-height:260px}
   .reactor{transform:scale(.8)}
 }
+/* ================= v7 · DASHBOARD HUD ================= */
+body{background:
+  radial-gradient(1200px 600px at 50% -10%,rgba(0,212,255,.14),transparent 60%),
+  radial-gradient(800px 500px at 100% 100%,rgba(122,60,255,.10),transparent 60%),
+  linear-gradient(180deg,#02060c,#03070d)}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.35;
+  background-image:linear-gradient(rgba(0,212,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,.05) 1px,transparent 1px);
+  background-size:42px 42px;mask-image:radial-gradient(ellipse at center,#000 30%,transparent 80%)}
+#main{position:relative;z-index:1;grid-template-columns:270px minmax(340px,1fr) minmax(400px,1.15fr);grid-template-rows:auto 1fr;
+  grid-template-areas:"head head head" "hud left mods";gap:14px;padding:14px}
+header{grid-area:head;gap:14px;flex-wrap:wrap;border:1px solid var(--line);background:linear-gradient(90deg,rgba(0,212,255,.08),rgba(6,18,30,.6) 40%,rgba(6,18,30,.6) 60%,rgba(0,212,255,.08));padding:10px 16px;border-radius:10px}
+.brand{display:flex;flex-direction:column;line-height:1.1}
+.brand b{font-size:20px}
+.brand small{font-size:9px;letter-spacing:.35em;color:var(--mut)}
+.clock{display:flex;align-items:baseline;gap:10px}
+#clk{font-size:30px;letter-spacing:.08em;color:#e8fbff;text-shadow:0 0 14px var(--c)}
+#dt{font-size:11px;letter-spacing:.2em;color:var(--mut);text-transform:uppercase}
+.hchips{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.chip{font-size:10px;letter-spacing:.18em;padding:5px 9px;border:1px solid var(--line);border-radius:20px;color:var(--mut);background:rgba(0,0,0,.25)}
+#status.chip::before{content:"●";margin-right:6px;color:var(--c)}
+body.listening #status.chip{color:#06d6a0;border-color:#06d6a0}
+body.thinking #status.chip{color:var(--warn);border-color:var(--warn)}
+body.speaking #status.chip{color:var(--c2);border-color:var(--c)}
+.hbtns{display:flex;gap:6px}
+header button{border-radius:6px}
+.panel{border-radius:10px;background:linear-gradient(180deg,rgba(8,24,40,.82),rgba(4,12,22,.82));backdrop-filter:blur(6px);box-shadow:0 0 0 1px rgba(0,212,255,.05),0 10px 30px rgba(0,0,0,.35)}
+.panel::before,.panel::after{content:"";position:absolute;width:14px;height:14px;border:2px solid var(--c);pointer-events:none;opacity:.8}
+.panel::before{top:-1px;left:-1px;border-right:0;border-bottom:0;border-top-left-radius:10px}
+.panel::after{bottom:-1px;right:-1px;border-left:0;border-top:0;border-bottom-right-radius:10px}
+.panel>.tag{border-radius:4px}
+#left{grid-area:left}
+#graphwrap{grid-area:mods}
+#core{padding:22px 10px 12px}
+.reactor{width:220px;height:220px}
+.r0{width:220px;height:220px;background:repeating-conic-gradient(from 0deg,rgba(0,212,255,.55) 0 1.5deg,transparent 1.5deg 7.5deg);
+  -webkit-mask:radial-gradient(circle,transparent 66%,#000 67%,#000 72%,transparent 73%);mask:radial-gradient(circle,transparent 66%,#000 67%,#000 72%,transparent 73%);animation:spin 40s linear infinite}
+.r1{width:190px;height:190px}.r2{width:150px;height:150px}.r3{width:108px;height:108px}.r4{width:58px;height:58px}
+body.listening .r0{animation-duration:12s}
+body.thinking .r0{animation-duration:4s}
+#mlv{position:absolute;inset:0;margin:auto;width:58px;height:58px;border-radius:50%;box-shadow:0 0 0 0 rgba(6,214,160,.6);transition:box-shadow .08s}
+/* HUD cards */
+#hud{grid-area:hud;display:flex;flex-direction:column;gap:10px;min-height:0;overflow-y:auto;padding-right:2px}
+.card{position:relative;text-align:left;font:inherit;color:var(--tx);border:1px solid var(--line);border-radius:10px;padding:12px 14px;
+  background:linear-gradient(135deg,rgba(0,212,255,.08),rgba(6,18,30,.7));display:flex;flex-direction:column;gap:4px;transition:transform .3s,box-shadow .3s,border-color .3s;overflow:hidden}
+.card i{font-style:normal;font-size:9px;letter-spacing:.28em;color:var(--mut);display:flex;align-items:center;gap:8px}
+.card i svg{width:14px;height:14px;stroke:var(--c);fill:none;stroke-width:1.8}
+.card b{font-weight:normal;font-size:24px;color:#e8fbff;line-height:1.15}
+.card b.sm{font-size:13px;line-height:1.35}
+.card small{font-size:11px;color:var(--mut);line-height:1.35}
+.card::after{content:"";position:absolute;left:-40%;top:0;width:40%;height:100%;background:linear-gradient(90deg,transparent,rgba(0,212,255,.18),transparent);transform:skewX(-20deg);opacity:0}
+.card.lit{border-color:var(--c);box-shadow:0 0 24px rgba(0,212,255,.45),inset 0 0 18px rgba(0,212,255,.15);transform:translateX(4px)}
+.card.lit::after{animation:sweep 1.2s ease-out}
+@keyframes sweep{0%{left:-40%;opacity:1}100%{left:110%;opacity:0}}
+.card.cta{cursor:pointer;align-items:center;justify-content:center;text-align:center;color:var(--c);letter-spacing:.25em;font-size:12px;border-style:dashed}
+.card.cta:hover{background:var(--cd)}
+/* input com microfone */
+form{gap:0}
+#ptt{font-size:18px;padding:0 16px;border-left:1px solid var(--line)}
+#ptt.rec{background:rgba(255,77,109,.2);color:#fff;animation:blink 1s infinite}
+@media(max-width:1200px){
+  #main{grid-template-columns:minmax(320px,1fr) 1.2fr;grid-template-areas:"head head" "left mods" "hud hud";grid-template-rows:auto 1fr auto}
+  #hud{flex-direction:row;overflow-x:auto;overflow-y:hidden}
+  #hud .card{min-width:200px}
+}
+@media(max-width:820px){
+  #main{grid-template-columns:1fr;grid-template-areas:"head" "hud" "left" "mods";grid-template-rows:auto auto auto 460px}
+  #core{padding:16px 10px 8px}
+  .reactor{width:190px;height:190px;transform:none}
+  .reactor>div:not(#mlv){transform-origin:center}
+  .r0{width:190px;height:190px}.r1{width:164px;height:164px}.r2{width:130px;height:130px}.r3{width:94px;height:94px}.r4,#mlv{width:50px;height:50px}
+  #log{max-height:240px}
+  header{justify-content:center;text-align:center}
+  .clock{order:-1;width:100%;justify-content:center}
+  #clk{font-size:36px}
+  #hud{padding-bottom:4px}
+}
 </style>
 </head>
 <body class="idle">
@@ -162,20 +238,29 @@ form button{font:inherit;color:var(--c);background:transparent;border:0;border-l
 <!-- MAIN UI -->
 <main id="main" class="gone">
   <header>
-    <b id="title">JARVIS</b>
-    <span id="status">OCIOSO</span>
-    <span><button id="conv" title="Modo conversa: fala direto, sem palavra de ativação">CONVERSA</button> <span id="ant" title="Servidor local (server.js)">ANTENA ○</span><button id="mic" title="Ligar/desligar microfone">MIC</button> <button id="cfg" title="Configurações">⚙</button></span>
+    <div class="brand"><b id="title">JARVIS</b><small>SISTEMA PESSOAL · v7</small></div>
+    <div class="clock"><span id="clk">--:--</span><small id="dt"></small></div>
+    <div class="hchips"><span id="status" class="chip">OCIOSO</span><span id="ant" class="chip" title="Servidor (server.js ou Vercel)">ANTENA ○</span></div>
+    <div class="hbtns"><button id="conv" title="Modo conversa: fala direto, sem palavra de ativação">CONVERSA</button><button id="mic" title="Ligar/desligar microfone">MIC</button><button id="cfg" title="Configurações">⚙</button></div>
   </header>
+  <section id="hud">
+    <div class="card" id="cWx"><i><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>CLIMA</i><b>--°</b><small>carregando…</small></div>
+    <div class="card" id="cAg"><i><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>PRÓXIMO COMPROMISSO</i><b class="sm">—</b><small>configure o iCal em ⚙</small></div>
+    <div class="card" id="cMl"><i><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>E-MAILS · AÇÃO</i><b>—</b><small>configure o Gmail em ⚙</small></div>
+    <div class="card" id="cTm"><i><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7l4 3-1.5 5h-5L8 10z"/></svg>MEU TIME</i><b class="sm">—</b><small>escolha o time em ⚙</small></div>
+    <div class="card" id="cNw"><i><svg viewBox="0 0 24 24"><path d="M4 5h13v14H5a1 1 0 01-1-1zM17 9h3v9a1 1 0 01-1 1h-2M7 9h7M7 13h7M7 16h4"/></svg>MANCHETE</i><b class="sm">—</b><small></small></div>
+    <button class="card cta" id="cBrief" type="button">▶ BRIEFING DO DIA<small>tecla B · ou diga "acorda"</small></button>
+  </section>
   <section id="left">
     <div id="core" class="panel">
       <span class="tag">NÚCLEO</span>
-      <div class="reactor"><div class="r1"></div><div class="r2"></div><div class="r3"></div><div class="r4"></div></div>
+      <div class="reactor"><div class="r0"></div><div id="mlv"></div><div class="r1"></div><div class="r2"></div><div class="r3"></div><div class="r4"></div></div>
       <div id="interim"></div>
     </div>
     <div id="logwrap" class="panel">
       <span class="tag">LOG DE COMUNICAÇÃO</span>
       <div id="log"></div>
-      <form id="form"><input id="txt" placeholder="Digite um comando..." autocomplete="off"><button>ENVIAR</button></form>
+      <form id="form"><input id="txt" placeholder="Digite ou toque no 🎙 para falar..." autocomplete="off"><button type="button" id="ptt" title="Falar agora (tecla espaço)">🎙</button><button>ENVIAR</button></form>
     </div>
   </section>
   <section id="graphwrap" class="panel">
@@ -235,6 +320,8 @@ form button{font:inherit;color:var(--c);background:transparent;border:0;border-l
     <input id="iPass" type="password" placeholder="abcd efgh ijkl mnop" autocomplete="off">
     <label>CIDADE (CLIMA)</label>
     <input id="iCity">
+    <label>MEU TIME (ex.: Goiás, Vila Nova, Flamengo)</label>
+    <input id="iTeam" placeholder="nome do time">
     <label>ASSUNTOS DE NOTÍCIAS (separados por vírgula)</label>
     <input id="iTopics">
     <div class="row">
@@ -344,6 +431,7 @@ function speak(text){
       clearTimeout(guard);
       if(i>=parts.length){done();return}
       const u=new SpeechSynthesisUtterance(parts[i++]);
+      if(window.onSentence)onSentence(u.text);
       u.lang='pt-BR'; if(voice)u.voice=voice;
       u.rate=LS.get('jarvis_rate',1); u.pitch=LS.get('jarvis_pitch',1);
       u.onend=next; u.onerror=next;
@@ -1041,6 +1129,7 @@ async function cmdDigest(){
     w?`CLIMA ${w.city}: agora ${w.now}°C, ${w.desc}; mínima ${w.min}°C, máxima ${w.max}°C, chance de chuva ${w.rain}%.`:'CLIMA: indisponível.',
     'AGENDA HOJE: '+(DATA.agenda?agendaLine(0)||'livre':'não configurada'),
     'E-MAILS AÇÃO: '+(DATA.mail?mailActionLine()||'nenhum':'não configurado'),
+    (window.DATA_TEAM?'MEU TIME ('+DATA_TEAM.team+'): '+DATA_TEAM.items.slice(0,2).join(' | '):''),
     'MANCHETES: '+(nw.status==='fulfilled'?DATA.news.topics.map(g=>g.topic+': '+g.items.slice(0,3).map(i=>i.t).join(' | ')).join(' || '):'indisponível')
   ].join('\n');
   const sys=`Você é ${CONFIG.nome}, persona ${CONFIG.persona}, leal e com leve humor britânico. Trate o usuário como "${CONFIG.tratamento}". O texto será FALADO por TTS: português do Brasil, sem markdown, sem listas, sem emojis, sem tags.`;
@@ -1063,7 +1152,11 @@ async function runLocal(fn,n){
   let say='';
   try{say=await fn(n||'')}catch(e){log('e',e.message);say=e.message}
   thinking=false;
-  if(say){log('a',say);await speak(say)}else restState();
+  if(say){
+    log('a',say);
+    if(typeof makeSpeaker==='function'){const spk=makeSpeaker(),sp=makeSplitter(t=>spk.push(t));sp.feed(say);sp.flush();await spk.end()}
+    else await speak(say);
+  }else restState();
 }
 async function omniroute(text){
   const n=norm(text).replace(/e-mail/g,'email').replace(/[^a-z0-9\s]/g,' ').replace(/\s+/g,' ').trim();
@@ -1366,6 +1459,7 @@ function makeSpeaker(){
       if(!q.length){if(closed)break;if(thinking)setState('thinking');await new Promise(r=>wake=r);continue}
       setState('speaking');
       const it=q.shift();
+      if(window.onSentence)onSentence(it.text); // acende o cartão do assunto falado
       let ok=false;
       if(it.audio){const b=await it.audio;if(b&&!aborted)ok=await playBlob(b)}
       if(!ok&&!aborted)await nativeSay(it.text);
@@ -1541,6 +1635,159 @@ $('conv').onclick=()=>{
 };
 paintConv();
 $('btnAct').addEventListener('click',()=>setTimeout(()=>{if(convOn())log('s','Modo conversa ativo: é só falar. (Botão CONVERSA no topo para voltar ao "Ei Jarvis".)')},800));
+</script>
+<script>
+'use strict';
+/* =====================================================================
+   v7 · DASHBOARD HUD · MICROFONE (🎙 + diagnóstico) · MEMÓRIA DA CONVERSA
+   ===================================================================== */
+window.DATA_TEAM=null;
+
+/* ---------- relógio ---------- */
+function tickClock(){
+  const d=new Date();
+  $('clk').textContent=d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  $('dt').textContent=d.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'short'});
+}
+tickClock();setInterval(tickClock,1000);
+
+/* ---------- cartões ---------- */
+function setCard(id,big,sub){const c=$(id);c.querySelector('b').textContent=big;c.querySelector('small').textContent=sub||''}
+function renderCards(){
+  const w=DATA.wx;
+  if(w)setCard('cWx',w.now+'°',`${w.desc} · ${w.min}°/${w.max}° · ☂ ${w.rain}% · ${w.city}`);
+  if(DATA.agenda){
+    const nx=agEvents().find(e=>e.e>new Date());
+    setCard('cAg',nx?nx.t:'Agenda livre',nx?`${dayLabel(nx.s)} · ${nx.allDay?'dia todo':hm(nx.s)}${nx.loc?' · '+nx.loc:''}`:`nada nos próximos ${MOD.agendaDias} dias`);
+  }
+  if(DATA.mail){const a=mailBuckets()['AÇÃO'];setCard('cMl',String(a.length),a[0]?`${a[0].from}: ${a[0].r||a[0].subject}`:'nada urgente')}
+  const team=LS.get('jarvis_team','');
+  if(team)setCard('cTm',DATA_TEAM&&DATA_TEAM.items[0]?DATA_TEAM.items[0]:'buscando notícias…',team.toUpperCase());
+  if(DATA.news){const g=DATA.news.topics.find(x=>x.items.length);if(g)setCard('cNw',g.items[0].t,g.topic.toUpperCase()+(g.items[0].src?' · '+g.items[0].src:''))}
+}
+async function loadTeam(){
+  const team=LS.get('jarvis_team','');if(!team)return;
+  const doc=new DOMParser().parseFromString(await srvGet(newsUrl(team+' futebol')),'text/xml');
+  const items=[...doc.querySelectorAll('item')].slice(0,5).map(it=>{
+    const t=(it.querySelector('title')||{}).textContent||'',src=(it.querySelector('source')||{}).textContent||'';
+    return src&&t.endsWith(' - '+src)?t.slice(0,-(src.length+3)):t;
+  });
+  window.DATA_TEAM={team,items,ts:Date.now()};
+  renderCards();
+}
+setInterval(renderCards,3000);
+
+/* ---------- destaque sincronizado: o cartão acende quando o Jarvis fala do assunto ---------- */
+const LIGHT=[
+  ['cWx',/(graus|°|temperatura|chuva|clima|ensolarad|nublad|calor|frio|umidade)/],
+  ['cAg',/(compromisso|reuniao|agenda|as \d{1,2}|horas)/],
+  ['cMl',/(e-?mails?|caixa de entrada)/],
+  ['cNw',/(noticia|manchete|segundo o |segundo a |mercado|economia|tecnologia)/]
+];
+function lit(id){
+  const c=$(id);c.classList.remove('lit');void c.offsetWidth;c.classList.add('lit');
+  clearTimeout(c._t);c._t=setTimeout(()=>c.classList.remove('lit'),4500);
+  if(innerWidth<=1200)c.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'});
+}
+window.onSentence=t=>{
+  const n=norm(t);
+  LIGHT.forEach(([id,re])=>{if(re.test(n))lit(id)});
+  const tm=norm(LS.get('jarvis_team',''));if(tm&&n.includes(tm))lit('cTm');
+};
+
+/* ---------- microfone: diagnóstico claro ---------- */
+const MIC_MSG={
+  'not-allowed':'Microfone bloqueado. No Chrome: toque no cadeado ao lado do endereço → Permissões → Microfone → Permitir. No app instalado: Configurações do Android → Apps → Jarvis → Permissões → Microfone.',
+  'service-not-allowed':'O navegador bloqueou o reconhecimento de voz. Use o Google Chrome (Android/PC) ou o Microsoft Edge (PC).',
+  'audio-capture':'Nenhum microfone disponível (ou outro app está usando o microfone).',
+  'network':'O reconhecimento de voz precisa de internet (usa o serviço do Google/Microsoft).',
+  'language-not-supported':'O reconhecimento em português não está disponível neste navegador.'
+};
+const micSeen={};
+function micError(code){
+  const m=MIC_MSG[code];if(!m)return;
+  if(micSeen[code]&&Date.now()-micSeen[code]<20000)return; // não repete a cada reinício
+  micSeen[code]=Date.now();log('e','Microfone: '+m);
+}
+const _initSTT5=initSTT;
+initSTT=()=>{
+  if(!(window.SpeechRecognition||window.webkitSpeechRecognition)){
+    log('e','Este navegador não reconhece voz. Use o Google Chrome (Android/PC) ou o Microsoft Edge (PC). No app instalado, o Chrome precisa estar instalado no celular.');
+    return false;
+  }
+  const ok=_initSTT5();
+  if(ok&&rec){const orig=rec.onerror;rec.onerror=e=>{if(orig)orig(e);micError(e.error)}}
+  return ok;
+};
+
+/* ---------- 🎙 falar agora (mais confiável no celular) ---------- */
+let pttRec=null;
+function ptt(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){initSTT();return}
+  if(pttRec){try{pttRec.stop()}catch(e){}return}
+  if(curSpeaker)curSpeaker.abort();
+  if(typeof stopEL==='function')stopEL();
+  if('speechSynthesis' in window)speechSynthesis.cancel();
+  const was=sttOn;sttOn=false;stopSTT(); // pausa a escuta contínua enquanto o 🎙 grava
+  const r=new SR();r.lang='pt-BR';r.continuous=false;r.interimResults=true;pttRec=r;
+  $('ptt').classList.add('rec');setState('listening');
+  let got='';
+  r.onresult=e=>{
+    let t='';for(let i=0;i<e.results.length;i++)t+=e.results[i][0].transcript;
+    $('interim').textContent=t;if(e.results[e.results.length-1].isFinal)got=t.trim();
+  };
+  r.onerror=e=>{if(e.error==='no-speech')log('s','Não ouvi nada. Toque no 🎙 e fale.');else micError(e.error)};
+  r.onend=async()=>{
+    pttRec=null;$('ptt').classList.remove('rec');$('interim').textContent='';
+    // espera a fala anterior terminar de liberar o microfone
+    for(let i=0;i<20&&busy;i++)await sleep(100);
+    if(got&&!thinking){log('u',got);await handleCommand(got)}else restState();
+    sttOn=was;if(sttOn)startSTT();
+  };
+  try{r.start()}catch(e){$('ptt').classList.remove('rec');pttRec=null;sttOn=was;log('e','Não foi possível iniciar o microfone: '+e.message)}
+}
+$('ptt').onclick=ptt;
+
+/* ---------- atalhos: ESPAÇO = falar · B = briefing (serve para botão físico/Stream Deck) ---------- */
+document.addEventListener('keydown',e=>{
+  if(!$('act').classList.contains('gone')||/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)||!$('modal').classList.contains('gone'))return;
+  if(e.code==='Space'){e.preventDefault();ptt()}
+  else if(e.key==='b'||e.key==='B'){if(!thinking)runLocal(cmdDigest)}
+});
+$('cBrief').onclick=()=>{if(!thinking)runLocal(cmdDigest)};
+
+/* ---------- pulso verde no reator quando ouve a sua voz ---------- */
+new MutationObserver(()=>{
+  const on=$('interim').textContent.trim();
+  $('mlv').style.boxShadow=on?`0 0 0 ${8+Math.random()*14}px rgba(6,214,160,.28),0 0 30px rgba(6,214,160,.5)`:'';
+}).observe($('interim'),{childList:true,characterData:true,subtree:true});
+
+/* ---------- memória da conversa entre sessões ---------- */
+(()=>{const h=LS.get('jarvis_hist',null);if(Array.isArray(h)&&h.length%2===0&&h.every(m=>typeof m.content==='string'))history=h})();
+const _ask7=ask;
+ask=async t=>{await _ask7(t);LS.set('jarvis_hist',history.slice(-20))};
+
+/* ---------- configurações: time ---------- */
+const _open7=openModal;
+openModal=()=>{_open7();$('iTeam').value=LS.get('jarvis_team','')};
+$('cfg').onclick=openModal;
+$('kSave').addEventListener('click',()=>{
+  const t=$('iTeam').value.trim();
+  if(t!==LS.get('jarvis_team','')){LS.set('jarvis_team',t);window.DATA_TEAM=null;if(t)loadTeam().catch(e=>log('e','Time: '+e.message));renderCards()}
+});
+
+/* ---------- carga inicial dos cartões ---------- */
+async function refreshCards(){
+  loadWeather().then(renderCards).catch(()=>{});
+  if(await antenna()){
+    if(!DATA.news)loadNews().then(renderCards).catch(()=>{});
+    if(LS.get('jarvis_team',''))loadTeam().catch(()=>{});
+  }
+  renderCards();
+}
+$('btnAct').addEventListener('click',()=>setTimeout(refreshCards,1200));
+setInterval(()=>{if($('act').classList.contains('gone'))refreshCards()},30*60000);
 </script>
 </body>
 </html>

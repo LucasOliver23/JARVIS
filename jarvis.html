@@ -82,6 +82,7 @@ form{display:flex;border-top:1px solid var(--line)}
 form input{flex:1;font:inherit;font-size:13px;background:transparent;border:0;color:var(--tx);padding:12px;outline:0}
 form button{font:inherit;color:var(--c);background:transparent;border:0;border-left:1px solid var(--line);padding:0 16px;cursor:pointer}
 #mic.off{color:var(--bad)}
+#conv.on{background:var(--cd);color:#fff;box-shadow:0 0 10px var(--c)}
 
 /* GRAFO */
 #graphwrap{display:flex;flex-direction:column;min-height:0}
@@ -163,7 +164,7 @@ form button{font:inherit;color:var(--c);background:transparent;border:0;border-l
   <header>
     <b id="title">JARVIS</b>
     <span id="status">OCIOSO</span>
-    <span><span id="ant" title="Servidor local (server.js)">ANTENA ○</span><button id="mic" title="Ligar/desligar microfone">MIC</button> <button id="cfg" title="Configurações">⚙</button></span>
+    <span><button id="conv" title="Modo conversa: fala direto, sem palavra de ativação">CONVERSA</button> <span id="ant" title="Servidor local (server.js)">ANTENA ○</span><button id="mic" title="Ligar/desligar microfone">MIC</button> <button id="cfg" title="Configurações">⚙</button></span>
   </header>
   <section id="left">
     <div id="core" class="panel">
@@ -1052,7 +1053,7 @@ async function cmdDigest(){
 
 /* ---------- OMNIROUTE: intercepta antes da API ---------- */
 const ROUTES=[
-  [/\b(bom dia|briefing|resumo do dia|morning digest|digest)\b/,cmdDigest],
+  [/\b(bom dia|acorda|briefing|resumo do dia|morning digest|digest)\b/,cmdDigest],
   [/\b(minha agenda|meus compromissos|agenda (de|da|pra|para) (hoje|amanha|semana)|o que (eu )?tenho (hoje|amanha|na agenda)|proximos compromissos|atualiza(r)? (a )?agenda)\b/,cmdAgenda],
   [/\b(meus emails?|caixa de entrada|novos emails?|tenho (algum |novos? )?emails?|atualiza(r)? (os )?emails?)\b/,cmdMail],
   [/^(?!.*\b(sobre|pesquis|busc|procur)).*\b(noticias|manchetes|radar)\b/,cmdNews]
@@ -1312,6 +1313,234 @@ $('cfgFile').onchange=async()=>{
     setTimeout(()=>location.reload(),900);
   }catch(e){log('e','Importação falhou: '+e.message)}
 };
+</script>
+<script>
+'use strict';
+/* =====================================================================
+   FASE 4 · MODO CONVERSA + STREAMING (fala a 1ª frase enquanto o resto é gerado)
+   Envelopa ask(), route() e initSTT() do core.
+   ===================================================================== */
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const convOn=()=>LS.get('jarvis_conv',true);
+let curSpeaker=null;
+
+/* ---------- fala em fila, com pré-carregamento do áudio da próxima frase ---------- */
+async function fetchELBlob(text,key){
+  const ids=[LS.get('jarvis_el_voice',''),LS.get('jarvis_el_ok',''),EL_DEFAULTS[0][0]].filter((v,i,a)=>v&&a.indexOf(v)===i);
+  for(const id of ids){
+    try{const r=await elTTS(text,key,id);if(r.ok)return await r.blob()}catch(e){}
+  }
+  return null;
+}
+function nativeSay(text){
+  return new Promise(res=>{
+    if(!('speechSynthesis' in window))return res();
+    const u=new SpeechSynthesisUtterance(text);
+    u.lang='pt-BR';if(voice)u.voice=voice;
+    u.rate=LS.get('jarvis_rate',1);u.pitch=LS.get('jarvis_pitch',1);
+    const g=setTimeout(res,text.length*110+4000);
+    u.onend=u.onerror=()=>{clearTimeout(g);res()};
+    speechSynthesis.speak(u);
+  });
+}
+function makeSpeaker(){
+  const key=LS.get('jarvis_el_key','');
+  const q=[];let started=false,closed=false,aborted=false,wake=null,audio=null,stopAudio=null,done;
+  const finished=new Promise(r=>done=r);
+  const poke=()=>{if(wake){const w=wake;wake=null;w()}};
+  function playBlob(blob){
+    return new Promise(res=>{
+      const url=URL.createObjectURL(blob);audio=new Audio(url);
+      const fin=ok=>{clearTimeout(g);URL.revokeObjectURL(url);audio=null;stopAudio=null;res(ok)};
+      const g=setTimeout(()=>fin(true),60000);
+      stopAudio=()=>{try{audio.pause()}catch(e){}fin(true)};
+      audio.onended=()=>fin(true);audio.onerror=()=>fin(false);
+      audio.play().catch(()=>fin(false));
+    });
+  }
+  async function run(){
+    started=true;busy=true;stopSTT();
+    if('speechSynthesis' in window)speechSynthesis.cancel();
+    for(;;){
+      if(aborted)break;
+      if(!q.length){if(closed)break;if(thinking)setState('thinking');await new Promise(r=>wake=r);continue}
+      setState('speaking');
+      const it=q.shift();
+      let ok=false;
+      if(it.audio){const b=await it.audio;if(b&&!aborted)ok=await playBlob(b)}
+      if(!ok&&!aborted)await nativeSay(it.text);
+    }
+    await sleep(400); // eco do alto-falante dissipa antes de reabrir o microfone
+    busy=false;restState();startSTT();done();
+  }
+  return {
+    any:false,
+    push(t){t=String(t).trim();if(!t||closed)return;this.any=true;
+      q.push({text:t,audio:key?fetchELBlob(t,key):null}); // baixa já, toca na ordem
+      if(!started)run();else poke()},
+    end(){closed=true;poke();if(!started)done();return finished},
+    abort(){aborted=true;closed=true;q.length=0;if(stopAudio)stopAudio();if('speechSynthesis' in window)speechSynthesis.cancel();poke();if(!started)done();return finished}
+  };
+}
+
+/* ---------- divide o texto em frases e esconde as tags [[SAVE:...]] ---------- */
+function makeSplitter(emit){
+  let buf='',first=true;
+  const out=t=>{t=t.replace(/\s+/g,' ').trim();if(t){emit(t);first=false}};
+  function pump(force){
+    for(;;){
+      buf=buf.replace(SAVE_RE,'');
+      const cut=buf.indexOf('[['), safe=cut>=0?buf.slice(0,cut):buf;
+      const m=/[.!?…]+["”')]*\s+|\n+/.exec(safe);
+      if(m){out(safe.slice(0,m.index+m[0].length));buf=buf.slice(m.index+m[0].length);continue}
+      const lim=first?90:200; // a 1ª frase sai mais cedo (quebra na vírgula)
+      if(safe.length>lim){const c=safe.lastIndexOf(', ');if(c>40){out(safe.slice(0,c+1));buf=buf.slice(c+2);continue}}
+      break;
+    }
+    if(force){out(buf.replace(/\[\[[\s\S]*$/,''));buf=''}
+  }
+  return {feed(t){buf+=t;pump(false)},flush(){pump(true)}};
+}
+
+/* ---------- chamada à API em streaming (SSE), reconstruindo os blocos ---------- */
+async function streamClaude(body,onText){
+  const res=await fetch(CONFIG.api,{method:'POST',headers:apiHeaders(LS.get('jarvis_key','')),body:JSON.stringify({...body,stream:true})});
+  if(!res.ok){
+    const d=await res.json().catch(()=>({}));
+    if(res.status===401)throw new Error('Chave Anthropic recusada ('+keyHint(LS.get('jarvis_key',''))+'). Gere uma nova em console.anthropic.com → API Keys e cole na ⚙.');
+    throw new Error((d.error&&d.error.message)||('HTTP '+res.status));
+  }
+  const rd=res.body.getReader(),dec=new TextDecoder(),blocks=[];let buf='',stop=null;
+  for(;;){
+    const {value,done}=await rd.read();if(done)break;
+    buf+=dec.decode(value,{stream:true});
+    let i;
+    while((i=buf.indexOf('\n\n'))>=0){
+      const line=buf.slice(0,i).split('\n').find(l=>l.startsWith('data:'));buf=buf.slice(i+2);
+      if(!line)continue;
+      let ev;try{ev=JSON.parse(line.slice(5))}catch(e){continue}
+      const b=blocks[ev.index];
+      switch(ev.type){
+        case 'content_block_start':
+          blocks[ev.index]={...ev.content_block};
+          if(ev.content_block.type==='tool_use')blocks[ev.index]._json='';
+          break;
+        case 'content_block_delta':{
+          const d=ev.delta;if(!b)break;
+          if(d.type==='text_delta'){b.text=(b.text||'')+d.text;onText(d.text)}
+          else if(d.type==='input_json_delta')b._json+=d.partial_json;
+          else if(d.type==='thinking_delta')b.thinking=(b.thinking||'')+d.thinking;
+          else if(d.type==='signature_delta')b.signature=(b.signature||'')+d.signature;
+          break;}
+        case 'content_block_stop':
+          if(b&&b.type==='tool_use'){try{b.input=b._json?JSON.parse(b._json):{}}catch(e){b.input={}}delete b._json}
+          break;
+        case 'message_delta':if(ev.delta&&ev.delta.stop_reason)stop=ev.delta.stop_reason;break;
+        case 'error':throw new Error((ev.error&&ev.error.message)||'erro no streaming');
+      }
+    }
+  }
+  return {content:blocks.filter(Boolean),stop_reason:stop};
+}
+
+/* ---------- ask() em streaming (mantém tool use, memória viva e histórico) ---------- */
+const _askClassic=ask;
+ask=async userText=>{
+  if(!LS.get('jarvis_stream',true)||!(window.ReadableStream&&window.TextDecoder))return _askClassic(userText);
+  if(!LS.get('jarvis_key','')){log('e','API key não configurada.');openModal();await speak('Preciso da sua chave de API, '+CONFIG.tratamento+'.');return}
+  thinking=true;setState('thinking');
+  const search=!!LS.get('jarvis_tavily',''), model=LS.get('jarvis_model',CONFIG.modelo);
+  const turn=[{role:'user',content:userText}];
+  const spk=makeSpeaker();curSpeaker=spk;
+  const split=makeSplitter(t=>spk.push(t));
+  let raw='',announced=false;
+  try{
+    for(let step=0;step<MAX_TOOL_STEPS;step++){
+      const body={model,max_tokens:CONFIG.maxTokens,system:buildSystem()+(search?SEARCH_RULE:''),messages:history.slice(-CONFIG.maxHist).concat(turn)};
+      // Voz pede velocidade: menos raciocínio antes da 1ª palavra nos modelos atuais
+      if(/^claude-(opus|sonnet|haiku|fable)-5/.test(model))body.output_config={effort:'low'};
+      if(search){body.tools=TOOLS;if(step===MAX_TOOL_STEPS-1)body.tool_choice={type:'none'}}
+      let stepText='';
+      const data=await streamClaude(body,t=>{stepText+=t;split.feed(t)});
+      split.flush();
+      const uses=data.content.filter(b=>b.type==='tool_use');
+      if(data.stop_reason!=='tool_use'||!uses.length){raw=stepText.trim();break}
+      turn.push({role:'assistant',content:data.content}); // turno completo, com ids dos tool_use
+      if(!stepText.trim()&&!announced){announced=true;spk.push('Pesquisando, '+CONFIG.tratamento+'.')}
+      const results=await Promise.all(uses.map(async u=>{
+        try{return {type:'tool_result',tool_use_id:u.id,content:await runTool(u.name,u.input)}}
+        catch(e){log('e',e.message);return {type:'tool_result',tool_use_id:u.id,content:'Erro: '+e.message,is_error:true}}
+      }));
+      turn.push({role:'user',content:results});
+      if(!busy)setState('thinking');
+    }
+    const clean=extractMemory(raw)||'Anotado, '+CONFIG.tratamento+'.';
+    if(!spk.any)spk.push(clean);
+    history.push({role:'user',content:userText},{role:'assistant',content:clean});
+    if(history.length>CONFIG.maxHist)history=history.slice(-CONFIG.maxHist);
+    log('a',clean);
+    thinking=false;
+    await spk.end();
+  }catch(err){
+    thinking=false;
+    await spk.abort();
+    log('e',err.message);
+    await speak('Falha na comunicação com o servidor, '+CONFIG.tratamento+'.');
+  }finally{thinking=false;if(curSpeaker===spk)curSpeaker=null;if(!busy)restState()}
+};
+// Enviar texto interrompe a fala em andamento
+$('form').addEventListener('submit',()=>{if(curSpeaker)curSpeaker.abort()},true);
+
+/* ---------- MODO CONVERSA: sem palavra de ativação ---------- */
+const _routeCore=route;
+route=async heard=>{
+  if(!convOn())return _routeCore(heard);
+  if(thinking||busy)return;
+  const n=norm(heard);
+  if(n.replace(/[^a-z0-9]/g,'').length<4)return; // ignora ruídos ("é", "hum", "ah")
+  const m=WAKE_RE.exec(n);
+  let cmd=heard;
+  if(m){const src=heard.length===n.length?heard:n;cmd=src.slice(m.index+m[0].length).trim()}
+  if(!cmd){log('u',heard);await speak('Pois não, '+CONFIG.tratamento+'?');return}
+  log('u',cmd);
+  await handleCommand(cmd);
+};
+
+/* ---------- fim de fala mais rápido: ~1s de silêncio já envia ---------- */
+const _initSTTCore=initSTT;
+initSTT=()=>{
+  const ok=_initSTTCore();
+  if(!ok||!rec)return ok;
+  let t=null,sent='',at=0;
+  rec.onresult=e=>{
+    if(busy)return;
+    let fin='',tmp='';
+    for(let i=e.resultIndex;i<e.results.length;i++){const r=e.results[i];r.isFinal?fin+=r[0].transcript:tmp+=r[0].transcript}
+    $('interim').textContent=tmp;
+    clearTimeout(t);
+    if(fin.trim()){
+      $('interim').textContent='';
+      const f=fin.trim();
+      // o resultado final repete o que já foi enviado pelo atalho → ignora
+      if(sent&&Date.now()-at<5000&&norm(f).startsWith(norm(sent).slice(0,12))){sent='';return}
+      sent='';route(f);return;
+    }
+    if(tmp.trim()&&convOn())t=setTimeout(()=>{
+      if(busy||thinking)return;
+      sent=tmp.trim();at=Date.now();$('interim').textContent='';route(sent);
+    },1000);
+  };
+  return ok;
+};
+
+/* ---------- botão CONVERSA ---------- */
+function paintConv(){$('conv').classList.toggle('on',convOn())}
+$('conv').onclick=()=>{
+  LS.set('jarvis_conv',!convOn());paintConv();
+  log('s',convOn()?'Modo conversa LIGADO: fale direto, sem "Ei Jarvis".':`Modo conversa DESLIGADO: diga "${CONFIG.wake}" antes do comando.`);
+};
+paintConv();
+$('btnAct').addEventListener('click',()=>setTimeout(()=>{if(convOn())log('s','Modo conversa ativo: é só falar. (Botão CONVERSA no topo para voltar ao "Ei Jarvis".)')},800));
 </script>
 </body>
 </html>

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Plan Screen"
+  short_description: "Ideia → direção, wireframes e mocks aprovados"
+  default_prompt: "Use $plan-screen: planeje esta tela ou fluxo, mostre três direções e gere os mocks após eu aprovar a direção e os wireframes."
+policy:
+  allow_implicit_invocation: false

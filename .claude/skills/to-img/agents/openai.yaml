@@ -1,0 +1,6 @@
+interface:
+  display_name: "To Img"
+  short_description: "Pedido ou batch → PNGs paralelos em mocks/"
+  default_prompt: "Use $to-img: gere imagens em paralelo a partir deste pedido ou batch e salve nos filenames definidos."
+policy:
+  allow_implicit_invocation: false
